@@ -56,9 +56,11 @@ credentials.json
 # docker local overrides (often hold host-specific secrets)
 docker-compose.override.yml
 
-# vercel / IDE
+# vercel / IDE / local-only project docs & Cursor rules
 .vercel
 .idea/
+.cursor/
+/docs/
 
 # uploaded home banners (keep folder via .gitkeep)
 /public/banners/*
