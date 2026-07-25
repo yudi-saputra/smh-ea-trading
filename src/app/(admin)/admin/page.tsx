@@ -25,7 +25,7 @@ function statusTone(status: string | null | undefined) {
   const s = status?.toLowerCase();
   if (s === "on") return "text-trading-profit";
   if (s === "paused") return "text-trading-gold";
-  if (s === "off") return "text-muted-foreground";70
+  if (s === "off") return "text-muted-foreground";
   return "text-muted-foreground";
 }
 
