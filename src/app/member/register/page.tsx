@@ -5,6 +5,9 @@ import { AuthRegisterForm } from "@/components/auth/register-form";
 
 export const metadata: Metadata = { title: "Daftar Member" };
 
+// Build has no Postgres; page must fetch packages at request time.
+export const dynamic = "force-dynamic";
+
 export default async function MemberRegisterPage() {
   const packages = await prisma.package.findMany({
     where: { status: PackageStatus.ACTIVE },
