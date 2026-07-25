@@ -1,0 +1,14 @@
+---
+description: Keep docs/ROUTING.md in sync when changing URLs or app areas
+alwaysApply: true
+---
+
+# Routing docs must stay current
+
+When you add, rename, move, or remove routes / app areas (public, member, admin, API):
+
+1. Update `docs/ROUTING.md` in the same change (URL table, folder paths, legacy redirects, auth helpers).
+2. Prefer `/member/*` for trader portal; keep `/` for public web; keep `/admin/*` for admin.
+3. Do not break `/api/v1/terminals/*` (MQ5 Controller) without an explicit MQ5 update.
+4. Add legacy redirects when removing a previously public URL.
+5. Project documentation lives only under `docs/` (never recreate `Doc/`). Update the matching file when schema, relations, routing, or EA docs change.

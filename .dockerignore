@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.github
+.cursor
+.vscode
+.env
+.env.*
+!.env.example
+*.md
+coverage
+.vercel
+npm-debug.log*
+**/*.tsbuildinfo
+agent-tools

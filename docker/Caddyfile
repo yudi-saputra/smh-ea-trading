@@ -1,0 +1,9 @@
+# Edit hostnames if domain differs. DNS A record must point to this VPS first.
+smhcloud.my.id {
+	encode gzip
+	reverse_proxy web:3000
+}
+
+www.smhcloud.my.id {
+	redir https://smhcloud.my.id{uri} permanent
+}
