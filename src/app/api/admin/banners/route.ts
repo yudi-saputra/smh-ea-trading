@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     ) {
       return jsonError("Format harus JPG atau PNG (landscape)", 400);
     }
-    // ~2.5MB ceiling
+    // Client compresses to JPEG ≤~2.5MB; keep ceiling as safety net.
     if (file.size > 2.5 * 1024 * 1024) {
       return jsonError("Ukuran maksimal 2.5MB", 400);
     }

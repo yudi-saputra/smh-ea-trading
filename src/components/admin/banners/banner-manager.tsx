@@ -38,6 +38,7 @@ import {
   AttachmentTitle,
 } from "@/components/ui/attachment";
 import { DataTableCard } from "@/components/admin/tables/data-table";
+import { compressBannerForUpload } from "@/components/admin/banners/compress-banner";
 import { cn } from "@/lib/utils";
 
 type Slide = {
@@ -151,10 +152,11 @@ export function AdminBannerManager({ header }: { header?: ReactNode }) {
       return;
     }
 
-    if (next.size > 2.5 * 1024 * 1024) {
+    // Source boleh lebih besar; setelah kompres biasanya ≪ 500KB.
+    if (next.size > 8 * 1024 * 1024) {
       setFile(next);
       setUploadState("error");
-      setUploadError("Maksimal 2.5MB");
+      setUploadError("Maksimal 8MB sebelum kompresi");
       return;
     }
 
@@ -179,8 +181,21 @@ export function AdminBannerManager({ header }: { header?: ReactNode }) {
       return;
     }
 
-    setFile(next);
-    setUploadState("idle");
+    try {
+      const compressed = await compressBannerForUpload(next);
+      if (compressed.size > 2.5 * 1024 * 1024) {
+        setFile(compressed);
+        setUploadState("error");
+        setUploadError("Hasil kompresi masih terlalu besar");
+        return;
+      }
+      setFile(compressed);
+      setUploadState("idle");
+    } catch {
+      setFile(next);
+      setUploadState("error");
+      setUploadError("Gagal mengompres gambar");
+    }
   }
 
   async function onSaveInterval(e: React.FormEvent) {
@@ -387,7 +402,8 @@ export function AdminBannerManager({ header }: { header?: ReactNode }) {
             <DialogHeader>
               <DialogTitle>Tambah banner</DialogTitle>
               <DialogDescription>
-                JPG / PNG landscape, maks. 2.5MB. Disarankan 1320 × 600 px.
+                JPG / PNG landscape (maks. 8MB). Otomatis dikompres ke ~1280px JPEG.
+                Disarankan rasio ≈ 2.2∶1 (mis. 1320 × 600).
               </DialogDescription>
             </DialogHeader>
 

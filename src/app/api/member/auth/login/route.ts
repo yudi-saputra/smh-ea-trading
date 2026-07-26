@@ -18,7 +18,8 @@ export async function POST(req: Request) {
   try {
     const body = (await req.json()) as { email?: string; password?: string };
     const email = body.email?.trim().toLowerCase();
-    const password = body.password ?? "";
+    // Match register hashing (trimmed). Autofill in PWA sometimes adds stray whitespace.
+    const password = typeof body.password === "string" ? body.password.trim() : "";
 
     if (!email || !password) {
       return jsonError("Email and password required");

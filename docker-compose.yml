@@ -2,6 +2,11 @@ services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    logging: &default-logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -26,12 +31,14 @@ services:
       db:
         condition: service_healthy
     restart: "no"
+    logging: *default-logging
 
   web:
     build:
       context: .
       target: runner
     restart: unless-stopped
+    logging: *default-logging
     env_file:
       - .env
     environment:
@@ -49,6 +56,7 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "80:80"
       - "443:443"

@@ -17,6 +17,14 @@ type Props = {
   className?: string;
 };
 
+function nearIndex(i: number, index: number, len: number) {
+  if (len <= 3) return true;
+  if (i === index) return true;
+  if (i === (index + 1) % len) return true;
+  if (i === (index - 1 + len) % len) return true;
+  return false;
+}
+
 export function HomeBanner({
   slides,
   intervalSec = 5,
@@ -24,6 +32,7 @@ export function HomeBanner({
 }: Props) {
   const items = slides.length > 0 ? slides : [];
   const [index, setIndex] = useState(0);
+  const [loaded, setLoaded] = useState<Record<string, boolean>>({});
   const ms = Math.max(2, Math.min(60, intervalSec)) * 1000;
 
   useEffect(() => {
@@ -50,28 +59,42 @@ export function HomeBanner({
           className="flex h-full transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform"
           style={{ transform: `translate3d(-${index * 100}%, 0, 0)` }}
         >
-          {items.map((slide, i) => (
-            <div
-              key={slide.id}
-              className="relative h-full w-full shrink-0 grow-0 basis-full"
-              aria-hidden={i !== index}
-            >
-              <Image
-                src={slide.src}
-                alt={slide.alt}
-                fill
-                sizes="(max-width: 768px) 100vw, 768px"
-                className="object-cover"
-                priority={i === 0}
-                // Uploaded banners live on a Docker volume; Image optimizer
-                // returns null for those files under standalone output.
-                unoptimized={
-                  slide.src.startsWith("/banners/") ||
-                  slide.src.endsWith(".svg")
-                }
-              />
-            </div>
-          ))}
+          {items.map((slide, i) => {
+            const show = nearIndex(i, index, items.length);
+            return (
+              <div
+                key={slide.id}
+                className="relative h-full w-full shrink-0 grow-0 basis-full"
+                aria-hidden={i !== index}
+              >
+                {show ? (
+                  <Image
+                    src={slide.src}
+                    alt={slide.alt}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 768px"
+                    className={cn(
+                      "object-cover transition-opacity duration-300",
+                      loaded[slide.id] ? "opacity-100" : "opacity-0",
+                    )}
+                    priority={i === 0}
+                    decoding="async"
+                    onLoad={() =>
+                      setLoaded((m) =>
+                        m[slide.id] ? m : { ...m, [slide.id]: true },
+                      )
+                    }
+                    // Uploaded banners live on a Docker volume; Image optimizer
+                    // returns null for those files under standalone output.
+                    unoptimized={
+                      slide.src.startsWith("/banners/") ||
+                      slide.src.endsWith(".svg")
+                    }
+                  />
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       </div>
 

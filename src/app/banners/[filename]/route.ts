@@ -1,4 +1,6 @@
-import { promises as fs } from "fs";
+import { createReadStream } from "fs";
+import { stat } from "fs/promises";
+import { Readable } from "stream";
 import { NextResponse } from "next/server";
 import { resolveBannerDiskPath } from "@/lib/home-banners";
 
@@ -16,16 +18,20 @@ export async function GET(_req: Request, { params }: Params) {
   }
 
   try {
-    const buf = await fs.readFile(diskPath);
+    const info = await stat(diskPath);
     const lower = filename.toLowerCase();
     const contentType = lower.endsWith(".png")
       ? "image/png"
       : "image/jpeg";
 
-    return new NextResponse(buf, {
+    const nodeStream = createReadStream(diskPath);
+    const body = Readable.toWeb(nodeStream) as ReadableStream;
+
+    return new NextResponse(body, {
       status: 200,
       headers: {
         "Content-Type": contentType,
+        "Content-Length": String(info.size),
         "Cache-Control": "public, max-age=31536000, immutable",
       },
     });
