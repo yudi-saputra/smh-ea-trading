@@ -36,6 +36,11 @@ enum MemberStatus {
   INACTIVE
 }
 
+enum AffiliateStatus {
+  ACTIVE
+  INACTIVE
+}
+
 model Package {
   id          String        @id @default(cuid())
   name        String
@@ -47,9 +52,27 @@ model Package {
   members Member[]
 }
 
+model Affiliate {
+  id        String          @id @default(cuid())
+  /** Referral code used in register URL / form (unique, uppercase stored). */
+  code      String          @unique
+  name      String
+  email     String          @unique
+  phone     String?
+  status    AffiliateStatus @default(ACTIVE)
+  notes     String          @default("")
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  members Member[]
+
+  @@map("affiliates")
+}
+
 model Member {
   id              String       @id @default(cuid())
   packageId       String       @map("package_id")
+  affiliateId     String?      @map("affiliate_id")
   name            String
   email           String       @unique
   /** bcrypt hash (legacy plaintext rows rehashed on next login). */
@@ -61,11 +84,13 @@ model Member {
   createdAt       DateTime     @default(now()) @map("created_at")
 
   package        Package         @relation(fields: [packageId], references: [id])
+  affiliate      Affiliate?      @relation(fields: [affiliateId], references: [id], onDelete: SetNull)
   sessions       MemberSession[]
   ownedTerminals Terminal[]      @relation("TerminalMemberOwner")
   commands       Command[]       @relation("CommandMemberActor")
 
   @@index([packageId])
+  @@index([affiliateId])
   @@map("members")
 }
 

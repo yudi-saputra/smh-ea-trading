@@ -191,7 +191,7 @@ function MemberFormFields({
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="member-serverBroker">Server Trading</Label>
+        <Label htmlFor="member-serverBroker">Server Broker</Label>
         <Input
           id="member-serverBroker"
           required
@@ -422,7 +422,7 @@ export function MembersTable({
       },
       {
         accessorKey: "serverBroker",
-        header: "Server Trading",
+        header: "Server Broker",
       },
       {
         accessorKey: "status",
@@ -664,7 +664,7 @@ export function MembersTable({
                       label: "Password Trading",
                       value: viewRow.passwordTrading,
                     },
-                    { label: "Server Trading", value: viewRow.serverBroker },
+                    { label: "Server Broker", value: viewRow.serverBroker },
                     {
                       label: "Status",
                       value: formatMemberStatus(viewRow.status),

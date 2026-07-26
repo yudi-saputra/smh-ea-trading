@@ -150,6 +150,7 @@ export function AccountsTable({
   const [createKey, setCreateKey] = useState(0);
   const [viewRow, setViewRow] = useState<AccountRow | null>(null);
   const [editRow, setEditRow] = useState<AccountRow | null>(null);
+  const [editLabel, setEditLabel] = useState("");
   const [editExpiresAt, setEditExpiresAt] = useState("");
   const [editSaving, setEditSaving] = useState(false);
   const [deleteRow, setDeleteRow] = useState<AccountRow | null>(null);
@@ -179,11 +180,13 @@ export function AccountsTable({
     setError(null);
     setViewRow(null);
     setEditRow(row);
+    setEditLabel(row.name);
     setEditExpiresAt(toExpiryDateInput(row.expiresAt));
   }
 
   function closeEdit() {
     setEditRow(null);
+    setEditLabel("");
     setEditExpiresAt("");
     setEditSaving(false);
   }
@@ -195,6 +198,11 @@ export function AccountsTable({
   async function saveEdit(e: React.FormEvent) {
     e.preventDefault();
     if (!editRow) return;
+    const name = editLabel.trim();
+    if (!name) {
+      setError("Label wajib diisi");
+      return;
+    }
     setError(null);
     setEditSaving(true);
     try {
@@ -202,6 +210,7 @@ export function AccountsTable({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          name,
           expiresAt: editExpiresAt.trim() || null,
         }),
       });
@@ -210,6 +219,17 @@ export function AccountsTable({
         setError(json.error ?? "Gagal memperbarui akun");
         return;
       }
+      setData((prev) =>
+        prev.map((r) =>
+          r.id === editRow.id
+            ? {
+                ...r,
+                name: json.terminal?.name ?? name,
+                expiresAt: json.terminal?.expiresAt ?? r.expiresAt,
+              }
+            : r,
+        ),
+      );
       closeEdit();
       router.refresh();
     } catch {
@@ -303,8 +323,22 @@ export function AccountsTable({
   const columns = useMemo<ColumnDef<AccountRow>[]>(
     () => [
       {
-        accessorKey: "name",
+        id: "member",
         header: "Member",
+        accessorFn: (row) => row.ownerName ?? row.ownerEmail ?? "",
+        cell: ({ row }) => {
+          const name = row.original.ownerName?.trim();
+          const email = row.original.ownerEmail;
+          return (
+            <span className="font-medium">
+              {name || email || "—"}
+            </span>
+          );
+        },
+      },
+      {
+        accessorKey: "name",
+        header: "Label",
         cell: ({ row }) => (
           <span className="font-medium">{row.original.name}</span>
         ),
@@ -313,7 +347,7 @@ export function AccountsTable({
         accessorKey: "terminalId",
         header: "ID Trading",
         cell: ({ row }) => (
-          <span className="font-mono text-sm">{row.original.terminalId}</span>
+          <span className="text-sm">{row.original.terminalId}</span>
         ),
       },
       {
@@ -337,8 +371,8 @@ export function AccountsTable({
         header: "EA Status",
         cell: ({ row }) => {
           const status = row.original.eaStatus;
-          if (!status || status === "-" || status === "—") {
-            return <span className="text-muted-foreground">—</span>;
+          if (!status || status === "-" || status === "-") {
+            return <span className="text-muted-foreground">-</span>;
           }
           return (
             <span
@@ -437,15 +471,14 @@ export function AccountsTable({
 
   const detailRows = viewRow
     ? [
-        { label: "Member", value: viewRow.name },
-        { label: "ID Trading", value: viewRow.terminalId },
-        ...(showOwner
-          ? [
-              {
-                label: "Owner",
-                value: viewRow.ownerName ?? viewRow.ownerEmail ?? "—",
-              },
-            ]
+        {
+          label: "Member",
+          value: viewRow.ownerName ?? viewRow.ownerEmail ?? "—",
+        },
+        { label: "Label", value: viewRow.name },
+        { label: "Terminal ID", value: viewRow.terminalId },
+        ...(showOwner && viewRow.ownerEmail
+          ? [{ label: "Email", value: viewRow.ownerEmail }]
           : []),
         {
           label: "MT Status",
@@ -467,7 +500,7 @@ export function AccountsTable({
         <DataTableSearch
           value={filter}
           onChange={setFilter}
-          placeholder="Cari member atau ID trading…"
+          placeholder="Cari member, label, atau Terminal ID…"
         />
         {canCreate ? (
           <Button
@@ -609,9 +642,9 @@ export function AccountsTable({
         <DialogContent className="sm:max-w-[425px]">
           <form onSubmit={(e) => void saveEdit(e)} className="grid gap-4">
             <DialogHeader>
-              <DialogTitle>Edit akun</DialogTitle>
+              <DialogTitle>Edit Akun</DialogTitle>
               <DialogDescription>
-                Ubah tanggal kedaluwarsa akun.
+                Ubah label/keterangan dan tanggal expired akun.
               </DialogDescription>
             </DialogHeader>
             {error ? (
@@ -630,12 +663,22 @@ export function AccountsTable({
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-expiresAt">Tanggal kedaluwarsa</Label>
+                <Label htmlFor="edit-label">Label / Ket</Label>
+                <Input
+                  id="edit-label"
+                  value={editLabel}
+                  onChange={(e) => setEditLabel(e.target.value)}
+                  required
+                  autoComplete="off"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-expiresAt">Expired</Label>
                 <DatePicker
                   id="edit-expiresAt"
                   value={editExpiresAt}
                   onChange={setEditExpiresAt}
-                  placeholder="Tanpa batas"
+                  placeholder="Expired"
                 />
               </div>
             </div>
@@ -670,8 +713,8 @@ export function AccountsTable({
               <span className="font-medium text-foreground">
                 {deleteRow?.name}
               </span>{" "}
-              (ID Trading {deleteRow?.terminalId}) akan dihapus permanen.
-              ApiKey terkait ikut hilang.
+              (ID Trading {deleteRow?.terminalId}) akan dihapus Permanen.
+              API Key terkait akan hilang.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {error ? (
@@ -712,7 +755,6 @@ export function AccountsTable({
                 {generateRow?.name}
               </span>{" "}
               (ID Trading {generateRow?.terminalId}) langsung tidak berlaku.
-              Tempel key baru di SMH_Controller.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {error ? (
@@ -745,7 +787,7 @@ export function AccountsTable({
           <DialogHeader>
             <DialogTitle>API Key</DialogTitle>
             <DialogDescription>
-              Salin ApiKey sekarang. Key lama sudah tidak berlaku.
+              Salin API Key, API Key lama tidak berlaku.
             </DialogDescription>
           </DialogHeader>
           <pre className="overflow-x-auto rounded-md border bg-muted/40 px-3 py-2 font-mono text-xs break-all whitespace-pre-wrap">

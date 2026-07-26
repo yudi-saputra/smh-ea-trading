@@ -40,16 +40,20 @@ type FormValues = {
   idTrading: string;
   passwordTrading: string;
   serverBroker: string;
+  referralCode: string;
 };
 
 export function AuthRegisterForm({
   packages,
   turnstileSiteKey,
+  initialReferralCode = "",
   className,
   ...props
 }: React.ComponentProps<"div"> & {
   packages: RegisterPackageOption[];
   turnstileSiteKey?: string | null;
+  /** Prefill from ?ref=KODE */
+  initialReferralCode?: string;
 }) {
   const [form, setForm] = useState<FormValues>({
     packageId: packages[0]?.id ?? "",
@@ -59,6 +63,7 @@ export function AuthRegisterForm({
     idTrading: "",
     passwordTrading: "",
     serverBroker: "",
+    referralCode: initialReferralCode,
   });
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -105,6 +110,7 @@ export function AuthRegisterForm({
         idTrading: "",
         passwordTrading: "",
         serverBroker: "",
+        referralCode: initialReferralCode,
       });
       setTurnstileToken(null);
     } catch {
@@ -235,6 +241,23 @@ export function AuthRegisterForm({
                       value={form.serverBroker}
                       onChange={(e) => patch({ serverBroker: e.target.value })}
                       className="h-11"
+                    />
+                  </div>
+                  <div className="grid gap-2 sm:col-span-2">
+                    <Label htmlFor="reg-referral">
+                      Kode referral{" "}
+                      <span className="font-normal text-muted-foreground">
+                        (opsional)
+                      </span>
+                    </Label>
+                    <Input
+                      id="reg-referral"
+                      value={form.referralCode}
+                      onChange={(e) =>
+                        patch({ referralCode: e.target.value.toUpperCase() })
+                      }
+                      className="h-11"
+                      autoComplete="off"
                     />
                   </div>
                 </div>

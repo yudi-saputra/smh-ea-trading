@@ -125,6 +125,8 @@ export async function POST(req: Request) {
 
     const body = (await req.json()) as {
       ownerMemberId?: string;
+      terminalId?: string;
+      name?: string;
       expiresAt?: string | null;
     };
 
@@ -139,25 +141,26 @@ export async function POST(req: Request) {
       return jsonError("Member harus aktif", 400);
     }
 
-    const terminalId = owner.idTrading.trim();
+    // Multi-akun: terminalId bebas per MT5; default ke idTrading member jika kosong.
+    const terminalId = (body.terminalId?.trim() || owner.idTrading.trim());
     if (!terminalId) {
-      return jsonError("Member belum punya ID Trading", 400);
+      return jsonError("Terminal ID wajib diisi", 400);
     }
     if (!TERMINAL_ID_RE.test(terminalId)) {
-      return jsonError(
-        "ID Trading member harus berupa [A-Za-z0-9_-]",
-        400,
-      );
+      return jsonError("Terminal ID harus berupa [A-Za-z0-9_-]", 400);
     }
 
-    const name = owner.name.trim() || owner.email;
+    const name =
+      body.name?.trim() ||
+      owner.name.trim() ||
+      owner.email;
 
     const expiresParsed = parseExpiresAt(body.expiresAt);
     if (!expiresParsed.ok) return jsonError(expiresParsed.error);
 
     const exists = await prisma.terminal.findUnique({ where: { terminalId } });
     if (exists) {
-      return jsonError("ID Trading ini sudah punya akun", 409);
+      return jsonError("Terminal ID sudah dipakai akun lain", 409);
     }
 
     const apiKey = generateApiKey();

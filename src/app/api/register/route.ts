@@ -1,9 +1,10 @@
-import { MemberStatus, PackageStatus } from "@prisma/client";
+import { MemberStatus, PackageStatus, AffiliateStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/crypto";
 import { handleRouteError, jsonError, jsonOk } from "@/lib/api";
 import { clientIpFromRequest } from "@/lib/session-meta";
 import { verifyTurnstileToken } from "@/lib/turnstile";
+import { normalizeAffiliateCode } from "@/lib/affiliates";
 
 export async function POST(req: Request) {
   try {
@@ -15,6 +16,7 @@ export async function POST(req: Request) {
       idTrading?: string;
       passwordTrading?: string;
       serverBroker?: string;
+      referralCode?: string;
       turnstileToken?: string;
     };
 
@@ -25,6 +27,7 @@ export async function POST(req: Request) {
     const idTrading = body.idTrading?.trim();
     const passwordTrading = body.passwordTrading?.trim();
     const serverBroker = body.serverBroker?.trim();
+    const referralCode = normalizeAffiliateCode(body.referralCode ?? "");
 
     const captcha = await verifyTurnstileToken(
       body.turnstileToken,
@@ -48,6 +51,18 @@ export async function POST(req: Request) {
     });
     if (!pkg) return jsonError("Paket tidak tersedia", 400);
 
+    let affiliateId: string | null = null;
+    if (referralCode) {
+      const affiliate = await prisma.affiliate.findFirst({
+        where: { code: referralCode, status: AffiliateStatus.ACTIVE },
+        select: { id: true },
+      });
+      if (!affiliate) {
+        return jsonError("Kode referral tidak valid atau nonaktif", 400);
+      }
+      affiliateId = affiliate.id;
+    }
+
     const existing = await prisma.member.findUnique({
       where: { email },
       select: { id: true },
@@ -57,6 +72,7 @@ export async function POST(req: Request) {
     await prisma.member.create({
       data: {
         packageId,
+        affiliateId,
         name,
         email,
         password: await hashPassword(password),

@@ -20,6 +20,7 @@ import {
   ImageIcon,
   PackageIcon,
   UserRoundIcon,
+  HandshakeIcon,
 } from "lucide-react";
 import { SmhLogo } from "@/components/shared/smh-logo";
 
@@ -77,7 +78,12 @@ export function AppSidebar({
           icon: <PackageIcon />,
           isActive: pathname.startsWith("/admin/packages"),
         },
-        
+        {
+          title: "Afiliator",
+          url: "/admin/affiliates",
+          icon: <HandshakeIcon />,
+          isActive: pathname.startsWith("/admin/affiliates"),
+        },
       ]
     : [];
 

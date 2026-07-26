@@ -100,7 +100,7 @@ export default async function AdminAccountDetailPage({ params }: Props) {
         <Card className="stat-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Equity
+              Balance
             </CardTitle>
           </CardHeader>
           <CardContent className="tabular-nums text-2xl font-semibold">
@@ -110,7 +110,7 @@ export default async function AdminAccountDetailPage({ params }: Props) {
         <Card className="stat-card">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Float PnL
+              Daily PnL
             </CardTitle>
           </CardHeader>
           <CardContent className="tabular-nums text-2xl font-semibold">
@@ -123,7 +123,7 @@ export default async function AdminAccountDetailPage({ params }: Props) {
         <Card className="panel-card">
           <CardHeader className="border-b border-border/40 pb-4">
             <CardTitle className="text-base font-semibold">
-              Tanggal kedaluwarsa
+              Expired
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
@@ -137,11 +137,11 @@ export default async function AdminAccountDetailPage({ params }: Props) {
 
       <Card className="panel-card">
         <CardHeader className="border-b border-border/40 pb-4">
-          <CardTitle className="text-base font-semibold">Live snapshot</CardTitle>
+          <CardTitle className="text-base font-semibold">Snapshot</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-1 pt-4 text-sm sm:grid-cols-2">
           <Row label="Symbol" value={snap?.symbol} />
-          <Row label="Account" value={snap?.account?.toString()} />
+          <Row label="ID Trading" value={snap?.account?.toString()} />
           <Row label="Balance" value={snap?.balance?.toString()} />
           <Row label="Positions" value={snap ? String(snap.positions) : null} />
           <Row label="BUY / SELL" value={snap ? `${snap.buy} / ${snap.sell}` : null} />

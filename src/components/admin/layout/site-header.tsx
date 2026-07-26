@@ -10,6 +10,7 @@ const TITLES: Record<string, string> = {
   "/admin/account": "Daftar Akun",
   "/admin/banners": "Banner",
   "/admin/packages": "Paket",
+  "/admin/affiliates": "Afiliator",
   "/admin/members": "Member",
   "/admin/users": "Pengguna",
 };
@@ -21,6 +22,7 @@ function titleForPath(pathname: string) {
   if (pathname.startsWith("/admin/users")) return "Users";
   if (pathname.startsWith("/admin/banners")) return "Banner Home";
   if (pathname.startsWith("/admin/packages")) return "Package";
+  if (pathname.startsWith("/admin/affiliates")) return "Afiliator";
   if (pathname.startsWith("/admin/members")) return "Member";
   if (pathname === "/admin" || pathname.startsWith("/admin/")) return "Overview";
   return "SMH";

@@ -3,13 +3,21 @@ import { PackageStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { AuthRegisterForm } from "@/components/auth/register-form";
 import { turnstileSiteKey } from "@/lib/turnstile";
+import { normalizeAffiliateCode } from "@/lib/affiliates";
 
 export const metadata: Metadata = { title: "Daftar Member" };
 
 // Build has no Postgres; page must fetch packages at request time.
 export const dynamic = "force-dynamic";
 
-export default async function MemberRegisterPage() {
+type Props = {
+  searchParams: Promise<{ ref?: string }>;
+};
+
+export default async function MemberRegisterPage({ searchParams }: Props) {
+  const params = await searchParams;
+  const initialReferralCode = normalizeAffiliateCode(params.ref ?? "");
+
   const packages = await prisma.package.findMany({
     where: { status: PackageStatus.ACTIVE },
     select: { id: true, name: true },
@@ -22,6 +30,7 @@ export default async function MemberRegisterPage() {
         <AuthRegisterForm
           packages={packages}
           turnstileSiteKey={turnstileSiteKey()}
+          initialReferralCode={initialReferralCode}
         />
       </div>
     </div>

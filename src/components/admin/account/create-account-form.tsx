@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -53,6 +54,8 @@ export function CreateAccountForm({
 }) {
   const router = useRouter();
   const [ownerMemberId, setOwnerMemberId] = useState("");
+  const [terminalId, setTerminalId] = useState("");
+  const [accountName, setAccountName] = useState("");
   const [durationMonths, setDurationMonths] = useState("1");
   const [error, setError] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState<string | null>(null);
@@ -67,6 +70,11 @@ export function CreateAccountForm({
         keywords: `${t.email} ${t.idTrading} ${t.serverBroker}`,
       })),
     [traders],
+  );
+
+  const selectedMember = useMemo(
+    () => traders.find((t) => t.id === ownerMemberId) ?? null,
+    [traders, ownerMemberId],
   );
 
   const expiresAtYmd = useMemo(
@@ -93,11 +101,26 @@ export function CreateAccountForm({
     }
   }
 
+  function onPickMember(id: string) {
+    setOwnerMemberId(id);
+    setError(null);
+    const m = traders.find((t) => t.id === id);
+    if (!m) return;
+    // Prefill from register ID Trading; admin can change for akun ke-2+.
+    setTerminalId(m.idTrading);
+    setAccountName(m.displayName?.trim() || m.email);
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     if (!ownerMemberId) {
       setError("Pilih member terlebih dahulu");
+      return;
+    }
+    const tid = terminalId.trim();
+    if (!tid) {
+      setError("ID Trading wajib diisi");
       return;
     }
     setLoading(true);
@@ -107,6 +130,8 @@ export function CreateAccountForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ownerMemberId,
+          terminalId: tid,
+          name: accountName.trim() || undefined,
           ...(isAdmin ? { expiresAt: expiresAtYmd } : {}),
         }),
       });
@@ -133,14 +158,14 @@ export function CreateAccountForm({
         <DialogHeader>
           <DialogTitle>API Key</DialogTitle>
           <DialogDescription>
-            Salin ApiKey sekarang. Key juga tersimpan di kolom API Key.
+            Salin ApiKey sekarang.
           </DialogDescription>
         </DialogHeader>
       ) : (
         <div className="space-y-1">
           <p className="text-sm font-medium">API Key</p>
           <p className="text-sm text-muted-foreground">
-            Salin ApiKey sekarang. Key juga tersimpan di kolom API Key.
+            Salin ApiKey
           </p>
         </div>
       )}
@@ -163,9 +188,9 @@ export function CreateAccountForm({
     <form onSubmit={(e) => void onSubmit(e)} className="grid gap-4">
       {embedded ? (
         <DialogHeader>
-          <DialogTitle>Tambah akun</DialogTitle>
+          <DialogTitle>Tambah Akun</DialogTitle>
           <DialogDescription>
-            Pilih member dan durasi langganan.
+            Satu member bisa punya beberapa akun.
           </DialogDescription>
         </DialogHeader>
       ) : null}
@@ -182,10 +207,7 @@ export function CreateAccountForm({
           <SearchableSelect
             id="owner"
             value={ownerMemberId}
-            onValueChange={(id) => {
-              setOwnerMemberId(id);
-              setError(null);
-            }}
+            onValueChange={onPickMember}
             options={memberOptions}
             disabled={traders.length === 0}
             placeholder={
@@ -201,13 +223,39 @@ export function CreateAccountForm({
 
       {isAdmin ? (
         <div className="grid gap-2">
-          <Label htmlFor="duration">Durasi</Label>
+          <Label htmlFor="terminalId">ID Trading</Label>
+          <Input
+            id="terminalId"
+            value={terminalId}
+            onChange={(e) => setTerminalId(e.target.value)}
+            autoComplete="off"
+            required
+            className="font-mono"
+          />
+        </div>
+      ) : null}
+
+      {isAdmin ? (
+        <div className="grid gap-2">
+          <Label htmlFor="accountName">Label / Keterangan</Label>
+          <Input
+            id="accountName"
+            value={accountName}
+            onChange={(e) => setAccountName(e.target.value)}
+            autoComplete="off"
+          />
+        </div>
+      ) : null}
+
+      {isAdmin ? (
+        <div className="grid gap-2">
+          <Label htmlFor="duration">Expired</Label>
           <Select
             value={durationMonths}
             onValueChange={(v) => setDurationMonths(v ?? "1")}
           >
             <SelectTrigger id="duration" className="w-full">
-              <SelectValue placeholder="Pilih durasi" />
+              <SelectValue placeholder="Pilih Expired" />
             </SelectTrigger>
             <SelectContent>
               {EXPIRY_DURATION_OPTIONS.map((opt) => (
@@ -246,9 +294,12 @@ export function CreateAccountForm({
         ) : null}
         <Button
           type="submit"
-          disabled={loading || (isAdmin && !ownerMemberId)}
+          disabled={
+            loading ||
+            (isAdmin && (!ownerMemberId || !terminalId.trim()))
+          }
         >
-          {loading ? "Menyimpan…" : "Buat akun"}
+          {loading ? "Menyimpan…" : "Simpan"}
         </Button>
       </div>
     </form>

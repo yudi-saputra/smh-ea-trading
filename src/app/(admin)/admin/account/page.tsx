@@ -12,7 +12,7 @@ import { decryptApiKey } from "@/lib/crypto";
 import { formatExpiryDate, expiryStatus } from "@/lib/expiry";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Daftar Akun" };
+export const metadata: Metadata = { title: "Account EA" };
 
 function isOnline(lastSeenAt: Date | null) {
   if (!lastSeenAt) return false;
@@ -52,8 +52,6 @@ export default async function AdminAccountPage() {
       : Promise.resolve([]),
   ]);
 
-  const usedTerminalIds = new Set(terminals.map((t) => t.terminalId));
-
   const rows: AccountRow[] = terminals.map((t) => ({
     id: t.id,
     terminalId: t.terminalId,
@@ -68,15 +66,13 @@ export default async function AdminAccountPage() {
     expiresAt: t.expiresAt?.toISOString() ?? null,
   }));
 
-  const traders = members
-    .filter((m) => !usedTerminalIds.has(m.idTrading))
-    .map((m) => ({
-      id: m.id,
-      email: m.email,
-      displayName: m.name,
-      idTrading: m.idTrading,
-      serverBroker: m.serverBroker,
-    }));
+  const traders = members.map((m) => ({
+    id: m.id,
+    email: m.email,
+    displayName: m.name,
+    idTrading: m.idTrading,
+    serverBroker: m.serverBroker,
+  }));
 
   return (
     <AccountsTable
