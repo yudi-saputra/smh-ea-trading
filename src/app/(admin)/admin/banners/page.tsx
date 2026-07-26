@@ -4,7 +4,7 @@ import { Role } from "@prisma/client";
 import { AdminBannerManager } from "@/components/admin/banners/banner-manager";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Banner Home" };
+export const metadata: Metadata = { title: "Banner" };
 
 export default async function AdminBannersPage() {
   const user = await getSessionUser();
@@ -12,15 +12,15 @@ export default async function AdminBannersPage() {
   if (user.role !== Role.SUPER_ADMIN) redirect("/admin");
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Banner Home</h1>
-        <p className="text-sm text-muted-foreground">
-          Upload gambar JPG atau PNG landscape untuk slide banner di halaman Home
-          client.
-        </p>
-      </div>
-      <AdminBannerManager />
-    </div>
+    <AdminBannerManager
+      header={
+        <div className="space-y-1">
+          <h2 className="text-2xl font-semibold tracking-tight">Banner</h2>
+          <p className="text-sm text-muted-foreground">
+            Kelola slide banner di beranda member.
+          </p>
+        </div>
+      }
+    />
   );
 }

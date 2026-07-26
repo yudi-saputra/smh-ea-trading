@@ -29,6 +29,19 @@ const PLACEHOLDER: HomeBannerSlide = {
 const DATA_PATH = path.join(process.cwd(), "data", "home-banners.json");
 const BANNERS_DIR = path.join(process.cwd(), "public", "banners");
 
+const BANNER_FILENAME_RE = /^[a-f0-9]{16}\.(png|jpe?g)$/i;
+
+export function bannersDir() {
+  return BANNERS_DIR;
+}
+
+/** Resolve a safe disk path for an uploaded banner filename, or null if invalid. */
+export function resolveBannerDiskPath(filename: string): string | null {
+  const base = path.basename(filename);
+  if (!BANNER_FILENAME_RE.test(base)) return null;
+  return path.join(BANNERS_DIR, base);
+}
+
 function clampInterval(sec: number) {
   if (!Number.isFinite(sec)) return DEFAULT_INTERVAL_SEC;
   return Math.min(MAX_INTERVAL_SEC, Math.max(MIN_INTERVAL_SEC, Math.round(sec)));

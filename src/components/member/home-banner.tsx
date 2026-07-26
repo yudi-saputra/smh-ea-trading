@@ -63,7 +63,12 @@ export function HomeBanner({
                 sizes="(max-width: 768px) 100vw, 768px"
                 className="object-cover"
                 priority={i === 0}
-                unoptimized={slide.src.endsWith(".svg")}
+                // Uploaded banners live on a Docker volume; Image optimizer
+                // returns null for those files under standalone output.
+                unoptimized={
+                  slide.src.startsWith("/banners/") ||
+                  slide.src.endsWith(".svg")
+                }
               />
             </div>
           ))}

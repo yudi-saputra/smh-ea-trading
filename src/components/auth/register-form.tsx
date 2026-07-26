@@ -22,6 +22,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SmhLogo } from "@/components/shared/smh-logo";
+import {
+  TurnstileField,
+  resetTurnstile,
+} from "@/components/auth/turnstile-field";
 
 export type RegisterPackageOption = {
   id: string;
@@ -40,10 +44,12 @@ type FormValues = {
 
 export function AuthRegisterForm({
   packages,
+  turnstileSiteKey,
   className,
   ...props
 }: React.ComponentProps<"div"> & {
   packages: RegisterPackageOption[];
+  turnstileSiteKey?: string | null;
 }) {
   const [form, setForm] = useState<FormValues>({
     packageId: packages[0]?.id ?? "",
@@ -54,6 +60,7 @@ export function AuthRegisterForm({
     passwordTrading: "",
     serverBroker: "",
   });
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -66,16 +73,24 @@ export function AuthRegisterForm({
     e.preventDefault();
     setError(null);
     setSuccess(null);
+
+    if (turnstileSiteKey && !turnstileToken) {
+      setError("Lengkapi verifikasi keamanan terlebih dahulu");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, turnstileToken }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Pendaftaran gagal");
+        setTurnstileToken(null);
+        resetTurnstile();
         return;
       }
       setSuccess(
@@ -91,8 +106,11 @@ export function AuthRegisterForm({
         passwordTrading: "",
         serverBroker: "",
       });
+      setTurnstileToken(null);
     } catch {
       setError("Kesalahan jaringan");
+      setTurnstileToken(null);
+      resetTurnstile();
     } finally {
       setLoading(false);
     }
@@ -106,7 +124,7 @@ export function AuthRegisterForm({
           <div className="flex flex-col items-center gap-1.5">
             <CardTitle className="type-display text-xl">Daftar Member</CardTitle>
             <CardDescription>
-            Lengkapi informasi pribadi dan detail trading anda.
+              Lengkapi informasi pribadi dan detail trading anda.
             </CardDescription>
           </div>
         </CardHeader>
@@ -222,9 +240,20 @@ export function AuthRegisterForm({
                 </div>
               )}
 
+              {turnstileSiteKey ? (
+                <TurnstileField
+                  siteKey={turnstileSiteKey}
+                  onToken={setTurnstileToken}
+                />
+              ) : null}
+
               <Button
                 type="submit"
-                disabled={loading || packages.length === 0}
+                disabled={
+                  loading ||
+                  packages.length === 0 ||
+                  Boolean(turnstileSiteKey && !turnstileToken)
+                }
                 className="type-title mt-2 h-12 w-full rounded-lg"
               >
                 {loading ? "Mendaftar…" : "Daftar"}

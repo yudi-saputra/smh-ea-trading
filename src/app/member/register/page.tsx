@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PackageStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { AuthRegisterForm } from "@/components/auth/register-form";
+import { turnstileSiteKey } from "@/lib/turnstile";
 
 export const metadata: Metadata = { title: "Daftar Member" };
 
@@ -18,7 +19,10 @@ export default async function MemberRegisterPage() {
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-2xl">
-        <AuthRegisterForm packages={packages} />
+        <AuthRegisterForm
+          packages={packages}
+          turnstileSiteKey={turnstileSiteKey()}
+        />
       </div>
     </div>
   );

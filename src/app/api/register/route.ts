@@ -2,6 +2,8 @@ import { MemberStatus, PackageStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/crypto";
 import { handleRouteError, jsonError, jsonOk } from "@/lib/api";
+import { clientIpFromRequest } from "@/lib/session-meta";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 export async function POST(req: Request) {
   try {
@@ -13,6 +15,7 @@ export async function POST(req: Request) {
       idTrading?: string;
       passwordTrading?: string;
       serverBroker?: string;
+      turnstileToken?: string;
     };
 
     const packageId = body.packageId?.trim();
@@ -22,6 +25,12 @@ export async function POST(req: Request) {
     const idTrading = body.idTrading?.trim();
     const passwordTrading = body.passwordTrading?.trim();
     const serverBroker = body.serverBroker?.trim();
+
+    const captcha = await verifyTurnstileToken(
+      body.turnstileToken,
+      clientIpFromRequest(req),
+    );
+    if (!captcha.ok) return jsonError(captcha.error, 400);
 
     if (!packageId) return jsonError("Paket wajib dipilih", 400);
     if (!name) return jsonError("Nama wajib diisi", 400);

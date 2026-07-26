@@ -26,6 +26,7 @@ export function middleware(req: NextRequest) {
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
+    pathname.startsWith("/banners/") ||
     pathname.includes(".")
   ) {
     return NextResponse.next();

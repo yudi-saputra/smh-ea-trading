@@ -1,11 +1,44 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
-import { ImageIcon, SaveIcon, TimerIcon, Trash2Icon, UploadIcon } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import {
+  ImageIcon,
+  PlusIcon,
+  SaveIcon,
+  Trash2Icon,
+  UploadIcon,
+  XIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Attachment,
+  AttachmentAction,
+  AttachmentActions,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentMedia,
+  AttachmentTitle,
+} from "@/components/ui/attachment";
+import { DataTableCard } from "@/components/admin/tables/data-table";
+import { cn } from "@/lib/utils";
 
 type Slide = {
   id: string;
@@ -14,16 +47,35 @@ type Slide = {
   createdAt: string;
 };
 
-export function AdminBannerManager() {
+type UploadState = "idle" | "uploading" | "error" | "done";
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function fileKindLabel(file: File) {
+  if (file.type === "image/png") return "PNG";
+  if (file.type === "image/jpeg" || file.type === "image/jpg") return "JPG";
+  return file.type || "File";
+}
+
+export function AdminBannerManager({ header }: { header?: ReactNode }) {
+  const inputId = useId();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [slides, setSlides] = useState<Slide[]>([]);
   const [intervalSec, setIntervalSec] = useState(5);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
   const [savingInterval, setSavingInterval] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [intervalSaved, setIntervalSaved] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [alt, setAlt] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadState, setUploadState] = useState<UploadState>("idle");
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -55,10 +107,85 @@ export function AdminBannerManager() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  function clearFile() {
+    setFile(null);
+    setUploadState("idle");
+    setUploadError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function closeUpload() {
+    setUploadOpen(false);
+    clearFile();
+    setAlt("");
+    setDragOver(false);
+  }
+
+  async function pickFile(next: File | null) {
+    setError(null);
+    setUploadError(null);
+    setUploadState("idle");
+    if (!next) {
+      clearFile();
+      return;
+    }
+
+    const okType =
+      next.type === "image/png" ||
+      next.type === "image/jpeg" ||
+      next.type === "image/jpg";
+    if (!okType) {
+      setFile(next);
+      setUploadState("error");
+      setUploadError("Hanya JPG atau PNG");
+      return;
+    }
+
+    if (next.size > 2.5 * 1024 * 1024) {
+      setFile(next);
+      setUploadState("error");
+      setUploadError("Maksimal 2.5MB");
+      return;
+    }
+
+    const dimsOk = await new Promise<boolean>((resolve) => {
+      const url = URL.createObjectURL(next);
+      const img = new window.Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve(img.width >= img.height);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(false);
+      };
+      img.src = url;
+    });
+
+    if (!dimsOk) {
+      setFile(next);
+      setUploadState("error");
+      setUploadError("Harus landscape (lebar ≥ tinggi)");
+      return;
+    }
+
+    setFile(next);
+    setUploadState("idle");
+  }
+
   async function onSaveInterval(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setIntervalSaved(false);
     setSavingInterval(true);
     try {
       const res = await fetch("/api/admin/banners", {
@@ -78,7 +205,6 @@ export function AdminBannerManager() {
       if (typeof data.intervalSec === "number") {
         setIntervalSec(data.intervalSec);
       }
-      setIntervalSaved(true);
     } catch {
       setError("Koneksi gagal");
     } finally {
@@ -89,31 +215,13 @@ export function AdminBannerManager() {
   async function onUpload(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!file) {
-      setError("Pilih file JPG atau PNG landscape");
+    if (!file || uploadState === "error") {
+      setUploadState("error");
+      setUploadError("Pilih file JPG atau PNG landscape yang valid");
       return;
     }
 
-    const dimsOk = await new Promise<boolean>((resolve) => {
-      const url = URL.createObjectURL(file);
-      const img = new window.Image();
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-        resolve(img.width >= img.height);
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        resolve(false);
-      };
-      img.src = url;
-    });
-
-    if (!dimsOk) {
-      setError("Gambar harus landscape (lebar ≥ tinggi)");
-      return;
-    }
-
-    setUploading(true);
+    setUploadState("uploading");
     try {
       const form = new FormData();
       form.set("file", file);
@@ -124,16 +232,15 @@ export function AdminBannerManager() {
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok) {
-        setError(data.error ?? "Upload gagal");
+        setUploadState("error");
+        setUploadError(data.error ?? "Upload gagal");
         return;
       }
-      setFile(null);
-      setAlt("");
+      closeUpload();
       await load();
     } catch {
-      setError("Koneksi gagal");
-    } finally {
-      setUploading(false);
+      setUploadState("error");
+      setUploadError("Koneksi gagal");
     }
   }
 
@@ -148,152 +255,254 @@ export function AdminBannerManager() {
     await load();
   }
 
+  const pendingDescription = useMemo(() => {
+    if (!file) return null;
+    if (uploadState === "uploading") return "Mengunggah…";
+    if (uploadState === "error") return uploadError ?? "Upload gagal";
+    return `${fileKindLabel(file)} · ${formatBytes(file.size)}`;
+  }, [file, uploadState, uploadError]);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {header}
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <form
+          onSubmit={(e) => void onSaveInterval(e)}
+          className="flex flex-wrap items-center gap-2"
+        >
+          <Label htmlFor="banner-interval" className="text-sm text-muted-foreground">
+            Interval (detik)
+          </Label>
+          <Input
+            id="banner-interval"
+            type="number"
+            min={2}
+            max={60}
+            step={1}
+            value={intervalSec}
+            onChange={(e) => setIntervalSec(Number(e.target.value) || 5)}
+            className="h-9 w-20"
+          />
+          <Button
+            type="submit"
+            variant="outline"
+            size="sm"
+            disabled={savingInterval || loading}
+            className="gap-1.5"
+          >
+            <SaveIcon className="size-3.5" aria-hidden />
+            {savingInterval ? "…" : "Simpan"}
+          </Button>
+        </form>
+
+        <Button
+          type="button"
+          onClick={() => setUploadOpen(true)}
+          className="gap-2 shrink-0"
+        >
+          <PlusIcon className="size-4" />
+          Tambah
+        </Button>
+      </div>
+
       {error ? (
-        <p className="text-sm rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2.5 text-destructive">
+        <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </p>
       ) : null}
 
-      <form
-        onSubmit={onSaveInterval}
-        className="space-y-4 rounded-2xl border border-border/80 bg-card p-4"
-      >
-        <div className="flex items-center gap-2">
-          <TimerIcon className="size-4 text-muted-foreground" aria-hidden />
-          <p className="text-sm font-semibold">Durasi slide</p>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Interval ganti slide di Home (2–60 detik).
-        </p>
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex min-w-[8rem] flex-1 flex-col gap-1.5">
-            <Label htmlFor="banner-interval">Detik</Label>
-            <Input
-              id="banner-interval"
-              type="number"
-              min={2}
-              max={60}
-              step={1}
-              value={intervalSec}
-              onChange={(e) => setIntervalSec(Number(e.target.value) || 5)}
-              className="h-11 rounded-xl"
-            />
-          </div>
-          <Button
-            type="submit"
-            disabled={savingInterval || loading}
-            className="h-11 gap-2 rounded-xl"
-          >
-            <SaveIcon className="size-4" aria-hidden />
-            {savingInterval ? "Menyimpan…" : "Simpan"}
-          </Button>
-        </div>
-        {intervalSaved ? (
-          <p className="text-xs text-trading-profit">
-            Interval disimpan: {intervalSec} detik.
-          </p>
-        ) : null}
-      </form>
-
-      <form
-        onSubmit={onUpload}
-        className="space-y-4 rounded-2xl border border-border/80 bg-card p-4"
-      >
-        <div className="flex items-center gap-2">
-          <UploadIcon className="size-4 text-muted-foreground" aria-hidden />
-          <p className="text-sm font-semibold">Upload banner</p>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          JPG atau PNG landscape saja, maks. 2.5MB. Ukuran disarankan{" "}
-          <span className="font-medium text-foreground">1320 × 600 px</span>{" "}
-          (rasio 2.2:1). Tampil di Home sebagai slide.
-        </p>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="banner-file">File JPG / PNG</Label>
-          <Input
-            id="banner-file"
-            type="file"
-            accept="image/jpeg,image/png,.jpg,.jpeg,.png"
-            className="h-11 rounded-xl"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="banner-alt">Label (opsional)</Label>
-          <Input
-            id="banner-alt"
-            value={alt}
-            onChange={(e) => setAlt(e.target.value)}
-            placeholder="Promo SMH"
-            className="h-11 rounded-xl"
-          />
-        </div>
-
-        <Button
-          type="submit"
-          disabled={uploading || !file}
-          className="h-11 gap-2 rounded-xl"
-        >
-          <UploadIcon className="size-4" aria-hidden />
-          {uploading ? "Mengunggah…" : "Upload"}
-        </Button>
-      </form>
-
-      <section className="space-y-3">
-        <h3 className="text-sm font-semibold tracking-tight">Banner aktif</h3>
+      <DataTableCard scrollClassName={false}>
         {loading ? (
-          <p className="text-xs text-muted-foreground">Memuat…</p>
+          <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+            Memuat…
+          </div>
         ) : slides.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border px-4 py-8 text-center">
+          <div className="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center">
             <ImageIcon
-              className="mx-auto size-8 text-muted-foreground/50"
+              className="size-8 text-muted-foreground/50"
               aria-hidden
             />
-            <p className="text-sm mt-2 text-muted-foreground">
-              Belum ada banner. Home memakai placeholder.
+            <p className="text-sm font-medium">Belum ada banner</p>
+            <p className="text-sm text-muted-foreground">
+              Klik Tambah untuk mengunggah slide pertama.
             </p>
           </div>
         ) : (
-          <ul className="space-y-3">
+          <ul className="divide-y divide-border/60">
             {slides.map((slide) => (
-              <li
-                key={slide.id}
-                className="flex items-center gap-3 rounded-2xl border border-border/80 bg-card p-3"
-              >
-                <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-lg bg-muted">
-                  <Image
-                    src={slide.src}
-                    alt={slide.alt}
-                    fill
-                    className="object-cover"
-                    sizes="112px"
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm truncate font-medium">{slide.alt}</p>
-                  <p className="text-xs truncate text-muted-foreground">
-                    {slide.src}
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0 text-destructive hover:text-destructive"
-                  aria-label="Hapus banner"
-                  onClick={() => void onDelete(slide.id)}
-                >
-                  <Trash2Icon className="size-4" />
-                </Button>
+              <li key={slide.id} className="p-3">
+                <Attachment state="done" className="w-full max-w-none border-0 bg-transparent p-0 shadow-none">
+                  <AttachmentMedia
+                    variant="image"
+                    className="aspect-[2.2/1] w-24 rounded-md"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element -- volume-backed /banners path */}
+                    <img
+                      src={slide.src}
+                      alt={slide.alt}
+                      className="size-full object-cover"
+                    />
+                  </AttachmentMedia>
+                  <AttachmentContent>
+                    <AttachmentTitle>{slide.alt || "Banner"}</AttachmentTitle>
+                    <AttachmentDescription>
+                      {new Date(slide.createdAt).toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </AttachmentDescription>
+                  </AttachmentContent>
+                  <AttachmentActions>
+                    <AttachmentAction
+                      type="button"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive"
+                      aria-label={`Hapus ${slide.alt || "banner"}`}
+                      onClick={() => void onDelete(slide.id)}
+                    >
+                      <Trash2Icon />
+                    </AttachmentAction>
+                  </AttachmentActions>
+                </Attachment>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </DataTableCard>
+
+      <Dialog
+        open={uploadOpen}
+        onOpenChange={(open) => {
+          if (!open) closeUpload();
+          else setUploadOpen(true);
+        }}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <form
+            onSubmit={(e) => void onUpload(e)}
+            className="grid gap-4"
+          >
+            <DialogHeader>
+              <DialogTitle>Tambah banner</DialogTitle>
+              <DialogDescription>
+                JPG / PNG landscape, maks. 2.5MB. Disarankan 1320 × 600 px.
+              </DialogDescription>
+            </DialogHeader>
+
+            <input
+              ref={fileInputRef}
+              id={inputId}
+              type="file"
+              accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+              className="sr-only"
+              onChange={(e) => void pickFile(e.target.files?.[0] ?? null)}
+            />
+
+            <label
+              htmlFor={inputId}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                setDragOver(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOver(false);
+                void pickFile(e.dataTransfer.files?.[0] ?? null);
+              }}
+              className={cn(
+                "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-4 py-8 text-center transition-colors",
+                dragOver
+                  ? "border-ring bg-muted/50"
+                  : "border-border hover:bg-muted/30",
+              )}
+            >
+              <ImageIcon
+                className="size-8 text-muted-foreground/60"
+                aria-hidden
+              />
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium">Pilih atau seret gambar</p>
+                <p className="text-sm text-muted-foreground">PNG atau JPG</p>
+              </div>
+            </label>
+
+            {file ? (
+              <Attachment
+                state={uploadState === "idle" ? "idle" : uploadState}
+                className="w-full max-w-none"
+              >
+                <AttachmentMedia variant={previewUrl ? "image" : "icon"}>
+                  {previewUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- local object URL preview
+                    <img src={previewUrl} alt="" />
+                  ) : (
+                    <ImageIcon />
+                  )}
+                </AttachmentMedia>
+                <AttachmentContent>
+                  <AttachmentTitle>{file.name}</AttachmentTitle>
+                  <AttachmentDescription>
+                    {pendingDescription}
+                  </AttachmentDescription>
+                </AttachmentContent>
+                <AttachmentActions>
+                  <AttachmentAction
+                    type="button"
+                    aria-label={`Hapus ${file.name}`}
+                    disabled={uploadState === "uploading"}
+                    onClick={clearFile}
+                  >
+                    <XIcon />
+                  </AttachmentAction>
+                </AttachmentActions>
+              </Attachment>
+            ) : null}
+
+            <div className="grid gap-2">
+              <Label htmlFor="banner-alt">Label (opsional)</Label>
+              <Input
+                id="banner-alt"
+                value={alt}
+                onChange={(e) => setAlt(e.target.value)}
+                placeholder="Promo SMH"
+              />
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeUpload}
+                disabled={uploadState === "uploading"}
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                disabled={
+                  !file ||
+                  uploadState === "uploading" ||
+                  uploadState === "error"
+                }
+                className="gap-2"
+              >
+                <UploadIcon className="size-4" aria-hidden />
+                {uploadState === "uploading" ? "Mengunggah…" : "Upload"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
