@@ -10,7 +10,13 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "SMH Control Panel",
   },
+  // Nested layout replaces root `icons` — must set favicon + apple together.
   icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/logo_smh.png", type: "image/png" },
+    ],
+    shortcut: "/icons/icon-192.png",
     apple: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
   },
 };
