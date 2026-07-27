@@ -74,6 +74,8 @@ export type AccountRow = {
   apiKey: string | null;
   ownerEmail: string | null;
   ownerName: string | null;
+  passwordTrading: string | null;
+  serverBroker: string | null;
   expiry: string;
   expiryLabel: "none" | "active" | "expiring" | "expired";
   expiresAt: string | null;
@@ -131,6 +133,8 @@ export function AccountsTable({
   traders = [],
   canCreate = false,
   canGenerateApiKey = false,
+  showApiKey = true,
+  canMutate = true,
 }: {
   header?: ReactNode;
   rows: AccountRow[];
@@ -138,6 +142,9 @@ export function AccountsTable({
   traders?: TraderOption[];
   canCreate?: boolean;
   canGenerateApiKey?: boolean;
+  showApiKey?: boolean;
+  /** Edit / Hapus / Generate. Staff: false → Aksi hanya Detail. */
+  canMutate?: boolean;
   /** @deprecated Detail memakai dialog; prop diabaikan. */
   basePath?: string;
 }) {
@@ -350,11 +357,17 @@ export function AccountsTable({
           <span className="text-sm">{row.original.terminalId}</span>
         ),
       },
-      {
-        id: "apiKey",
-        header: "API Key",
-        cell: ({ row }) => <ApiKeyCell apiKey={row.original.apiKey} />,
-      },
+      ...(showApiKey
+        ? [
+            {
+              id: "apiKey",
+              header: "API Key",
+              cell: ({ row }: { row: { original: AccountRow } }) => (
+                <ApiKeyCell apiKey={row.original.apiKey} />
+              ),
+            } satisfies ColumnDef<AccountRow>,
+          ]
+        : []),
       {
         id: "expiry",
         header: "Expired",
@@ -371,8 +384,8 @@ export function AccountsTable({
         header: "EA Status",
         cell: ({ row }) => {
           const status = row.original.eaStatus;
-          if (!status || status === "-" || status === "-") {
-            return <span className="text-muted-foreground">-</span>;
+          if (!status || status === "-" || status === "—") {
+            return <span className="text-muted-foreground">—</span>;
           }
           return (
             <span
@@ -410,7 +423,7 @@ export function AccountsTable({
               >
                 <EyeIcon />
               </DataTableAction>
-              {canGenerateApiKey ? (
+              {canMutate && canGenerateApiKey ? (
                 <DataTableAction
                   label="Generate API Key"
                   disabled={busy}
@@ -422,26 +435,30 @@ export function AccountsTable({
                   <KeyRoundIcon />
                 </DataTableAction>
               ) : null}
-              <DataTableAction
-                label="Edit"
-                disabled={busy}
-                onClick={() => openEdit(r)}
-              >
-                <PencilIcon />
-              </DataTableAction>
-              <DataTableAction
-                label="Hapus"
-                disabled={busy}
-                onClick={() => setDeleteRow(r)}
-              >
-                <Trash2Icon />
-              </DataTableAction>
+              {canMutate ? (
+                <DataTableAction
+                  label="Edit"
+                  disabled={busy}
+                  onClick={() => openEdit(r)}
+                >
+                  <PencilIcon />
+                </DataTableAction>
+              ) : null}
+              {canMutate ? (
+                <DataTableAction
+                  label="Hapus"
+                  disabled={busy}
+                  onClick={() => setDeleteRow(r)}
+                >
+                  <Trash2Icon />
+                </DataTableAction>
+              ) : null}
             </div>
           );
         },
       },
     ],
-    [busyId, canGenerateApiKey],
+    [busyId, canGenerateApiKey, canMutate, showApiKey],
   );
 
   const table = useReactTable({
@@ -477,6 +494,14 @@ export function AccountsTable({
         },
         { label: "Label", value: viewRow.name },
         { label: "Terminal ID", value: viewRow.terminalId },
+        {
+          label: "Password Trading",
+          value: viewRow.passwordTrading || "—",
+        },
+        {
+          label: "Server Broker",
+          value: viewRow.serverBroker || "—",
+        },
         ...(showOwner && viewRow.ownerEmail
           ? [{ label: "Email", value: viewRow.ownerEmail }]
           : []),
@@ -561,7 +586,7 @@ export function AccountsTable({
                     ? traders.length === 0
                       ? "Semua member aktif sudah punya akun, atau buat member dulu."
                       : "Klik Tambah untuk membuat akun baru."
-                    : "Buat terminal baru untuk memulai."
+                    : "Belum ada Account EA."
                 }
               />
             ) : (
@@ -629,7 +654,7 @@ export function AccountsTable({
             <Button type="button" variant="outline" onClick={closeView}>
               Tutup
             </Button>
-            {viewRow ? (
+            {canMutate && viewRow ? (
               <Button type="button" onClick={() => openEdit(viewRow)}>
                 Edit
               </Button>

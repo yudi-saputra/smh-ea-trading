@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/db";
 import {
   AuthError,
-  canAccessTerminals,
   canCreateTerminal,
   canSetTerminalExpiry,
+  canViewAccounts,
   getTerminalForUser,
   requireUser,
 } from "@/lib/auth";
@@ -16,7 +16,7 @@ type Params = { params: Promise<{ id: string }> };
 export async function GET(_req: Request, { params }: Params) {
   try {
     const user = await requireUser();
-    if (!canAccessTerminals(user.role)) throw new AuthError("Forbidden", 403);
+    if (!canViewAccounts(user.role)) throw new AuthError("Forbidden", 403);
 
     const { id } = await params;
     const terminal = await getTerminalForUser(user, id);
@@ -67,7 +67,7 @@ export async function GET(_req: Request, { params }: Params) {
 export async function PATCH(req: Request, { params }: Params) {
   try {
     const user = await requireUser();
-    if (!canAccessTerminals(user.role)) throw new AuthError("Forbidden", 403);
+    if (!canCreateTerminal(user.role)) throw new AuthError("Forbidden", 403);
 
     const { id } = await params;
     const terminal = await getTerminalForUser(user, id);

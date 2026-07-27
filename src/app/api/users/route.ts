@@ -3,7 +3,6 @@ import { prisma } from "@/lib/db";
 import {
   AuthError,
   canCreateStaffOrAdmin,
-  canCreateTrader,
   canListUsers,
   requireUser,
 } from "@/lib/auth";
@@ -19,9 +18,7 @@ export async function GET() {
 
     const users = await prisma.user.findMany({
       where:
-        actor.role === Role.STAFF
-          ? { role: Role.TRADER }
-          : undefined,
+        actor.role === Role.STAFF ? { id: actor.id } : undefined,
       select: {
         id: true,
         email: true,
@@ -42,6 +39,10 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const actor = await requireUser();
+    if (!canCreateStaffOrAdmin(actor.role)) {
+      throw new AuthError("Forbidden", 403);
+    }
+
     const body = (await req.json()) as {
       email?: string;
       password?: string;
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
 
     const email = body.email?.trim().toLowerCase();
     const password = body.password ?? "";
-    const role = body.role ?? Role.TRADER;
+    const role = body.role ?? Role.STAFF;
     const displayName = body.displayName?.trim() || null;
 
     if (!email || !password) {
@@ -60,14 +61,7 @@ export async function POST(req: Request) {
     if (password.length < 6) {
       return jsonError("Password min 6 characters");
     }
-
-    if (role === Role.TRADER) {
-      if (!canCreateTrader(actor.role)) throw new AuthError("Forbidden", 403);
-    } else if (role === Role.STAFF || role === Role.SUPER_ADMIN) {
-      if (!canCreateStaffOrAdmin(actor.role)) {
-        throw new AuthError("Forbidden", 403);
-      }
-    } else {
+    if (role !== Role.STAFF && role !== Role.SUPER_ADMIN) {
       return jsonError("Invalid role");
     }
 

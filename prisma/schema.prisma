@@ -12,7 +12,6 @@ datasource db {
 enum Role {
   SUPER_ADMIN
   STAFF
-  TRADER
 }
 
 enum UserStatus {
@@ -155,7 +154,7 @@ model Terminal {
   apiKeyHash    String    @map("api_key_hash")
   /** AES-GCM ciphertext for Super Admin reveal; null on legacy rows until rotate. */
   apiKeyEnc     String?   @map("api_key_enc")
-  /** Legacy TRADER User owner — prefer ownerMemberId for new terminals. */
+  /** Legacy User owner — prefer ownerMemberId for new terminals. */
   ownerUserId   String?   @map("owner_user_id")
   ownerMemberId String?   @map("owner_member_id")
   createdById   String    @map("created_by_id")

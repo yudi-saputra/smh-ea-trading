@@ -2,6 +2,8 @@ import { Role, UserStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import {
   AuthError,
+  canDeleteUser,
+  canEditUser,
   canManageUsersAdmin,
   requireUser,
 } from "@/lib/auth";
@@ -22,11 +24,12 @@ const userSelect = {
 export async function PATCH(req: Request, { params }: Params) {
   try {
     const actor = await requireUser();
-    if (!canManageUsersAdmin(actor.role)) {
+    const { id } = await params;
+
+    if (!canEditUser(actor, id)) {
       throw new AuthError("Forbidden", 403);
     }
 
-    const { id } = await params;
     const target = await prisma.user.findUnique({ where: { id } });
     if (!target) return jsonError("User not found", 404);
 
@@ -38,6 +41,7 @@ export async function PATCH(req: Request, { params }: Params) {
       password?: string;
     };
 
+    const isAdmin = canManageUsersAdmin(actor.role);
     const data: {
       email?: string;
       displayName?: string | null;
@@ -60,35 +64,37 @@ export async function PATCH(req: Request, { params }: Params) {
       data.displayName = body.displayName.trim() || null;
     }
 
-    if (body.role !== undefined) {
-      if (!Object.values(Role).includes(body.role)) {
-        return jsonError("Invalid role");
-      }
-      if (body.role !== target.role) {
-        if (target.id === actor.id) {
-          return jsonError("Cannot change your own role");
-        }
-        data.role = body.role;
-      }
-    }
-
-    if (body.status !== undefined) {
-      if (!Object.values(UserStatus).includes(body.status)) {
-        return jsonError("Invalid status");
-      }
-      if (body.status !== target.status) {
-        if (target.id === actor.id) {
-          return jsonError("Cannot change your own status");
-        }
-        data.status = body.status;
-      }
-    }
-
     if (body.password) {
       if (body.password.length < 6) {
         return jsonError("Password min 6 characters");
       }
       data.passwordHash = await hashPassword(body.password);
+    }
+
+    if (isAdmin) {
+      if (body.role !== undefined) {
+        if (!Object.values(Role).includes(body.role)) {
+          return jsonError("Invalid role");
+        }
+        if (body.role !== target.role) {
+          if (target.id === actor.id) {
+            return jsonError("Cannot change your own role");
+          }
+          data.role = body.role;
+        }
+      }
+
+      if (body.status !== undefined) {
+        if (!Object.values(UserStatus).includes(body.status)) {
+          return jsonError("Invalid status");
+        }
+        if (body.status !== target.status) {
+          if (target.id === actor.id) {
+            return jsonError("Cannot change your own status");
+          }
+          data.status = body.status;
+        }
+      }
     }
 
     if (Object.keys(data).length === 0) {
@@ -122,13 +128,10 @@ export async function PATCH(req: Request, { params }: Params) {
 export async function DELETE(_req: Request, { params }: Params) {
   try {
     const actor = await requireUser();
-    if (!canManageUsersAdmin(actor.role)) {
-      throw new AuthError("Forbidden", 403);
-    }
-
     const { id } = await params;
-    if (id === actor.id) {
-      return jsonError("Cannot delete your own account", 400);
+
+    if (!canDeleteUser(actor, id)) {
+      throw new AuthError("Forbidden", 403);
     }
 
     const target = await prisma.user.findUnique({ where: { id } });

@@ -9,7 +9,7 @@ import {
   clientIpFromRequest,
   userAgentFromRequest,
 } from "@/lib/session-meta";
-import { UserStatus, Role } from "@prisma/client";
+import { UserStatus } from "@prisma/client";
 import { handleRouteError, jsonError, jsonOk } from "@/lib/api";
 
 export async function POST(req: Request) {
@@ -25,12 +25,6 @@ export async function POST(req: Request) {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user || user.status !== UserStatus.ACTIVE) {
       return jsonError("Invalid email or password", 401);
-    }
-    if (user.role === Role.TRADER) {
-      return jsonError(
-        "Akun trader tidak lagi dipakai. Silakan login di /member/login",
-        403,
-      );
     }
 
     const ok = await verifyPassword(password, user.passwordHash);

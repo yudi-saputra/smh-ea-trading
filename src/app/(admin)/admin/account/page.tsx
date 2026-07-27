@@ -2,8 +2,8 @@ import { redirect } from "next/navigation";
 import { Role, MemberStatus } from "@prisma/client";
 import { AccountsTable, type AccountRow } from "@/components/admin/tables/accounts-table";
 import {
-  canAccessTerminals,
   canCreateTerminal,
+  canViewAccounts,
   getSessionUser,
   terminalOwnerFilter,
 } from "@/lib/auth";
@@ -22,10 +22,11 @@ function isOnline(lastSeenAt: Date | null) {
 export default async function AdminAccountPage() {
   const user = await getSessionUser();
   if (!user) redirect("/admin/login");
-  if (!canAccessTerminals(user.role)) redirect("/admin/users");
+  if (!canViewAccounts(user.role)) redirect("/admin/users");
 
   const canCreate = canCreateTerminal(user.role);
   const showApiKey = user.role === Role.SUPER_ADMIN;
+  const canMutate = user.role === Role.SUPER_ADMIN;
 
   const [terminals, members] = await Promise.all([
     prisma.terminal.findMany({
@@ -33,7 +34,14 @@ export default async function AdminAccountPage() {
       include: {
         snapshot: true,
         owner: { select: { email: true, displayName: true } },
-        memberOwner: { select: { email: true, name: true } },
+        memberOwner: {
+          select: {
+            email: true,
+            name: true,
+            passwordTrading: true,
+            serverBroker: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -61,6 +69,8 @@ export default async function AdminAccountPage() {
     apiKey: showApiKey ? decryptApiKey(t.apiKeyEnc) : null,
     ownerEmail: t.memberOwner?.email ?? t.owner?.email ?? "—",
     ownerName: t.memberOwner?.name ?? t.owner?.displayName ?? null,
+    passwordTrading: t.memberOwner?.passwordTrading ?? null,
+    serverBroker: t.memberOwner?.serverBroker ?? null,
     expiry: formatExpiryDate(t.expiresAt),
     expiryLabel: expiryStatus(t.expiresAt).label,
     expiresAt: t.expiresAt?.toISOString() ?? null,
@@ -80,12 +90,16 @@ export default async function AdminAccountPage() {
         <div className="space-y-1">
           <h2 className="text-2xl font-semibold tracking-tight">EA Account</h2>
           <p className="text-sm text-muted-foreground">
-            Daftar Account EA yang terhubung dengan member.
+            {canMutate
+              ? "Daftar Account EA yang terhubung dengan member."
+              : "Daftar Account EA yang terhubung dengan member."}
           </p>
         </div>
       }
       rows={rows}
       showOwner={user.role === Role.SUPER_ADMIN}
+      showApiKey={showApiKey}
+      canMutate={canMutate}
       canCreate={canCreate}
       canGenerateApiKey={showApiKey}
       traders={traders}

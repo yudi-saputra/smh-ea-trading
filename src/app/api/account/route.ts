@@ -2,8 +2,8 @@ import { MemberStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import {
   AuthError,
-  canAccessTerminals,
   canCreateTerminal,
+  canViewAccounts,
   requireUser,
   terminalOwnerFilter,
 } from "@/lib/auth";
@@ -63,7 +63,7 @@ export async function GET() {
     }
 
     const user = await requireUser();
-    if (!canAccessTerminals(user.role)) {
+    if (!canViewAccounts(user.role)) {
       throw new AuthError("Forbidden", 403);
     }
 

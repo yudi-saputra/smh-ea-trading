@@ -3,7 +3,6 @@ import { Role } from "@prisma/client";
 const ROLE_LABELS: Record<Role, string> = {
   SUPER_ADMIN: "Super Admin",
   STAFF: "Staff",
-  TRADER: "Trader",
 };
 
 export function formatRoleLabel(role: string) {

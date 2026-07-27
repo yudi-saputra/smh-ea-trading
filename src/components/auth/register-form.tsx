@@ -297,7 +297,8 @@ export function AuthRegisterForm({
       </Card>
 
       <p className="text-center text-xs text-muted-foreground text-balance">
-        Copyright © 2026 SMH. All rights reserved.
+        Copyright © {new Date().getFullYear()} SMH Control Panel. All rights
+        reserved.
       </p>
     </div>
   );

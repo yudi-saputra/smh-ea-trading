@@ -12,8 +12,10 @@ export default async function AdminUsersPage() {
   if (!user) redirect("/admin/login");
   if (!canListUsers(user.role)) redirect("/admin");
 
+  const isSuperAdmin = user.role === Role.SUPER_ADMIN;
+
   const users = await prisma.user.findMany({
-    where: user.role === Role.STAFF ? { role: Role.TRADER } : undefined,
+    where: isSuperAdmin ? undefined : { id: user.id },
     select: {
       id: true,
       email: true,
@@ -40,15 +42,17 @@ export default async function AdminUsersPage() {
         <div className="space-y-1">
           <h2 className="text-2xl font-semibold tracking-tight">Daftar Pengguna</h2>
           <p className="text-sm text-muted-foreground">
-            {user.role === Role.STAFF
-              ? "Staff can create Trader accounts only — no EA control."
-              : "Manage platform users and roles."}
+            {isSuperAdmin
+              ? "Kelola akun Super Admin dan Staff."
+              : "Profil akun Anda. Detail dan Edit tersedia; hapus akun tidak diizinkan."}
           </p>
         </div>
       }
       rows={rows}
-      allowCreateAdmin={user.role === Role.SUPER_ADMIN}
-      canEdit={user.role === Role.SUPER_ADMIN}
+      allowCreateAdmin={isSuperAdmin}
+      canEdit
+      allowRoleSelect={isSuperAdmin}
+      canDeleteUsers={isSuperAdmin}
       currentUserId={user.id}
     />
   );

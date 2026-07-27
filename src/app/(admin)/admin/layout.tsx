@@ -3,7 +3,6 @@ import {
   getSessionUser,
   homePathForRole,
   isAdminRole,
-  isMemberRole,
 } from "@/lib/auth";
 import { AppSidebar } from "@/components/admin/layout/app-sidebar";
 import { SiteHeader } from "@/components/admin/layout/site-header";
@@ -17,7 +16,6 @@ export default async function AdminLayout({
 }) {
   const user = await getSessionUser();
   if (!user) redirect("/admin/login");
-  if (isMemberRole(user.role)) redirect("/member");
   if (!isAdminRole(user.role)) redirect(homePathForRole(user.role));
 
   return (

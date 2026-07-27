@@ -36,33 +36,46 @@ export function AppSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar> & { user: SidebarUser }) {
   const pathname = usePathname();
-  const showTerminals = user.role === "SUPER_ADMIN";
-  const showUsers = user.role === "SUPER_ADMIN" || user.role === "STAFF";
+  const isSuperAdmin = user.role === "SUPER_ADMIN";
+  const isStaff = user.role === "STAFF";
+  const showTerminals = isSuperAdmin;
+  const showAccounts = isSuperAdmin || isStaff;
+  const showUsers = isSuperAdmin || isStaff;
   const homeHref = showTerminals ? "/admin" : "/admin/users";
 
-  const platformItems = showTerminals
-    ? [
-        {
-          title: "Dashboard",
-          url: "/admin",
-          icon: <LayoutDashboardIcon />,
-          isActive:
-            pathname === "/admin" || pathname.startsWith("/admin/dashboard"),
-        },
-        {
-          title: "Account EA",
-          url: "/admin/account",
-          icon: <MonitorSmartphoneIcon />,
-          isActive: pathname.startsWith("/admin/account"),
-        },
-        {
-          title: "Member",
-          url: "/admin/members",
-          icon: <UserRoundIcon />,
-          isActive: pathname.startsWith("/admin/members"),
-        },
-      ]
-    : [];
+  const platformItems = [
+    ...(showTerminals
+      ? [
+          {
+            title: "Dashboard",
+            url: "/admin",
+            icon: <LayoutDashboardIcon />,
+            isActive:
+              pathname === "/admin" || pathname.startsWith("/admin/dashboard"),
+          },
+        ]
+      : []),
+    ...(showAccounts
+      ? [
+          {
+            title: "Account EA",
+            url: "/admin/account",
+            icon: <MonitorSmartphoneIcon />,
+            isActive: pathname.startsWith("/admin/account"),
+          },
+        ]
+      : []),
+    ...(showTerminals
+      ? [
+          {
+            title: "Member",
+            url: "/admin/members",
+            icon: <UserRoundIcon />,
+            isActive: pathname.startsWith("/admin/members"),
+          },
+        ]
+      : []),
+  ];
 
   const contentItems = showTerminals
     ? [

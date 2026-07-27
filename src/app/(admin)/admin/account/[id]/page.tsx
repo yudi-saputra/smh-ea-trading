@@ -39,7 +39,7 @@ function expiryTone(label: string) {
 export default async function AdminAccountDetailPage({ params }: Props) {
   const user = await getSessionUser();
   if (!user) redirect("/admin/login");
-  if (!canAccessTerminals(user.role)) redirect("/admin/users");
+  if (!canAccessTerminals(user.role)) redirect("/admin/account");
 
   const { id } = await params;
   const terminal = await getTerminalForUser(user, id);

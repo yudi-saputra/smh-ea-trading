@@ -34,21 +34,21 @@ export default function PublicHomePage() {
               Smart Martingale Hedging
             </h1>
             <p className="mx-auto max-w-sm text-sm leading-relaxed text-muted-foreground">
-              Situs publik sedang disiapkan. Pantau terus — akses member tetap
-              tersedia di bawah.
+              Situs publik sedang disiapkan. <br />
+              Akses member tetap bisa di akses.
             </p>
           </div>
 
           <div className="animate-in fade-in slide-in-from-bottom-2 flex flex-wrap items-center justify-center gap-3 duration-700 delay-300 fill-mode-both">
             <Link
               href="/member/login"
-              className="inline-flex h-10 items-center justify-center rounded-xl bg-primary px-5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
             >
               Masuk Member
             </Link>
             <Link
               href="/member/register"
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-border bg-background/80 px-5 text-sm font-medium backdrop-blur-sm transition-colors hover:bg-muted"
+              className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-background/80 px-5 text-sm font-medium backdrop-blur-sm transition-colors hover:bg-muted"
             >
               Daftar
             </Link>
@@ -58,7 +58,8 @@ export default function PublicHomePage() {
 
       <footer className="relative z-10 animate-in fade-in pb-8 text-center duration-1000 delay-500 fill-mode-both">
         <p className="text-xs text-muted-foreground">
-          © {new Date().getFullYear()} SMH Control Panel
+          Copyright © {new Date().getFullYear()} SMH Control Panel. All
+          rights reserved.
         </p>
       </footer>
     </div>

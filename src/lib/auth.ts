@@ -163,16 +163,38 @@ export function canListUsers(role: Role) {
   return role === Role.SUPER_ADMIN || role === Role.STAFF;
 }
 
-export function canCreateTrader(role: Role) {
-  return role === Role.SUPER_ADMIN || role === Role.STAFF;
-}
-
 export function canCreateStaffOrAdmin(role: Role) {
   return role === Role.SUPER_ADMIN;
 }
 
+/** Super Admin manages any user; Staff may only edit own profile. */
+export function canManageUsersAdmin(role: Role) {
+  return role === Role.SUPER_ADMIN;
+}
+
+export function canEditUser(
+  actor: SessionUser,
+  targetUserId: string,
+): boolean {
+  if (actor.role === Role.SUPER_ADMIN) return true;
+  return actor.role === Role.STAFF && actor.id === targetUserId;
+}
+
+export function canDeleteUser(
+  actor: SessionUser,
+  targetUserId: string,
+): boolean {
+  return actor.role === Role.SUPER_ADMIN && actor.id !== targetUserId;
+}
+
+/** Dashboard + full EA control (Super Admin only). */
 export function canAccessTerminals(role: Role) {
   return role === Role.SUPER_ADMIN;
+}
+
+/** List Account EA (Staff view-only). */
+export function canViewAccounts(role: Role) {
+  return role === Role.SUPER_ADMIN || role === Role.STAFF;
 }
 
 /** Only Super Admin provisions terminals for members. */
@@ -189,14 +211,6 @@ export function canExecuteCommands(role: Role) {
   return role === Role.SUPER_ADMIN;
 }
 
-export function canManageUsersAdmin(role: Role) {
-  return role === Role.SUPER_ADMIN;
-}
-
-export function isMemberRole(role: Role) {
-  return role === Role.TRADER;
-}
-
 export function isAdminRole(role: Role) {
   return role === Role.SUPER_ADMIN || role === Role.STAFF;
 }
@@ -206,9 +220,9 @@ export function homePathForRole(role: Role) {
   return "/admin";
 }
 
-/** Terminal query scope for admin list. Staff: none. */
+/** Terminal query scope for admin list. */
 export function terminalOwnerFilter(user: SessionUser) {
-  if (user.role === Role.SUPER_ADMIN) return {};
+  if (user.role === Role.SUPER_ADMIN || user.role === Role.STAFF) return {};
   return { id: "__none__" };
 }
 
@@ -216,7 +230,7 @@ export async function getTerminalForUser(
   user: SessionUser,
   idOrTerminalId: string,
 ) {
-  if (user.role === Role.STAFF) return null;
+  if (!canViewAccounts(user.role)) return null;
 
   const terminal = await prisma.terminal.findFirst({
     where: {

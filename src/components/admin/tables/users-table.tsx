@@ -146,7 +146,6 @@ function UserFormFields({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="TRADER">{formatRoleLabel("TRADER")}</SelectItem>
               <SelectItem value="STAFF">{formatRoleLabel("STAFF")}</SelectItem>
               <SelectItem value="SUPER_ADMIN">
                 {formatRoleLabel("SUPER_ADMIN")}
@@ -155,7 +154,7 @@ function UserFormFields({
           </Select>
         </div>
       ) : null}
-      {mode === "edit" ? (
+      {allowRoleSelect && mode === "edit" ? (
         <div className="grid gap-2">
           <Label htmlFor="user-status">Status</Label>
           <Select
@@ -181,12 +180,17 @@ export function UsersTable({
   rows,
   allowCreateAdmin,
   canEdit,
+  allowRoleSelect = false,
+  canDeleteUsers = false,
   currentUserId,
 }: {
   header?: ReactNode;
   rows: UserRow[];
   allowCreateAdmin: boolean;
   canEdit: boolean;
+  /** Super Admin: role + status fields. Staff self-edit: profile only. */
+  allowRoleSelect?: boolean;
+  canDeleteUsers?: boolean;
   currentUserId?: string;
 }) {
   const router = useRouter();
@@ -202,7 +206,7 @@ export function UsersTable({
     email: "",
     displayName: "",
     password: "",
-    role: "TRADER",
+    role: "STAFF",
     status: "ACTIVE",
   });
   const [saving, setSaving] = useState(false);
@@ -216,7 +220,7 @@ export function UsersTable({
       email: "",
       displayName: "",
       password: "",
-      role: "TRADER",
+      role: "STAFF",
       status: "ACTIVE",
       ...overrides,
     });
@@ -269,7 +273,7 @@ export function UsersTable({
           email: form.email,
           password: form.password,
           displayName: form.displayName,
-          role: allowCreateAdmin ? form.role : "TRADER",
+          role: form.role,
         }),
       });
       const json = await res.json();
@@ -296,9 +300,11 @@ export function UsersTable({
       const payload: Record<string, string> = {
         email: form.email,
         displayName: form.displayName,
-        role: form.role,
-        status: form.status,
       };
+      if (allowRoleSelect) {
+        payload.role = form.role;
+        payload.status = form.status;
+      }
       if (form.password) payload.password = form.password;
 
       const res = await fetch(`/api/users/${editUser.id}`, {
@@ -413,7 +419,7 @@ export function UsersTable({
           const u = row.original;
           const busy = busyId === u.id;
           const canDelete =
-            canEdit && u.id !== currentUserId;
+            canDeleteUsers && u.id !== currentUserId;
           return (
             <div className="flex justify-end gap-1">
               <DataTableAction
@@ -448,7 +454,7 @@ export function UsersTable({
     ];
 
     return cols;
-  }, [canEdit, busyId, currentUserId]);
+  }, [canEdit, canDeleteUsers, busyId, currentUserId]);
 
   const table = useReactTable({
     data,
@@ -482,10 +488,12 @@ export function UsersTable({
           onChange={setFilter}
           placeholder="Cari berdasarkan nama, email, atau role…"
         />
-        <Button onClick={openCreate} className="gap-2 shrink-0">
-          <PlusIcon className="size-4" />
-          Tambah
-        </Button>
+        {allowCreateAdmin ? (
+          <Button onClick={openCreate} className="gap-2 shrink-0">
+            <PlusIcon className="size-4" />
+            Tambah
+          </Button>
+        ) : null}
       </div>
 
       <DataTableCard>
@@ -517,7 +525,11 @@ export function UsersTable({
               <DataTableEmpty
                 colSpan={columns.length}
                 title="Belum ada pengguna"
-                description="Klik Tambah untuk membuat pengguna baru."
+                description={
+                  allowCreateAdmin
+                    ? "Klik Tambah untuk membuat pengguna baru."
+                    : "Tidak ada data pengguna."
+                }
               />
             ) : (
               table.getRowModel().rows.map((row) => (
@@ -545,9 +557,7 @@ export function UsersTable({
             <DialogHeader>
               <DialogTitle>Tambah pengguna</DialogTitle>
               <DialogDescription>
-                {allowCreateAdmin
-                  ? "Buat akun baru dengan role yang dipilih."
-                  : "Buat akun Trader baru untuk onboarding."}
+                Buat akun Super Admin atau Staff.
               </DialogDescription>
             </DialogHeader>
             {error ? (
@@ -657,7 +667,7 @@ export function UsersTable({
             ) : null}
             <UserFormFields
               mode="edit"
-              allowRoleSelect
+              allowRoleSelect={allowRoleSelect}
               values={form}
               onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
             />
