@@ -21,6 +21,7 @@ import {
   DataTableEmpty,
   DataTablePagination,
   DataTableSearch,
+  DataTableToolbar,
   dataTableBodyClass,
   dataTableCellClass,
   dataTableHeadClass,
@@ -396,25 +397,28 @@ export function AffiliatesTable({
     <div className="space-y-4">
       {header}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <DataTableSearch
-          value={filter}
-          onChange={setFilter}
-          placeholder="Cari kode, nama, atau email…"
-        />
-        <Button onClick={openCreate} className="gap-2 shrink-0">
-          <PlusIcon className="size-4" />
-          Tambah
-        </Button>
-      </div>
-
       {error && !createOpen && !editRow && !deleteRow ? (
         <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </p>
       ) : null}
 
-      <DataTableCard>
+      <DataTableCard
+        toolbar={
+          <DataTableToolbar>
+            <DataTableSearch
+              value={filter}
+              onChange={setFilter}
+              placeholder="Cari kode, nama, atau email…"
+            />
+            <Button onClick={openCreate} className="gap-2 shrink-0">
+              <PlusIcon className="size-4" />
+              Tambah
+            </Button>
+          </DataTableToolbar>
+        }
+        footer={<DataTablePagination table={table} />}
+      >
         <Table>
           <TableHeader className={dataTableHeaderClass}>
             {table.getHeaderGroups().map((hg) => (
@@ -462,8 +466,6 @@ export function AffiliatesTable({
           </TableBody>
         </Table>
       </DataTableCard>
-
-      <DataTablePagination table={table} />
 
       <Dialog open={createOpen} onOpenChange={(open) => !open && closeDialogs()}>
         <DialogContent className="sm:max-w-[425px]">

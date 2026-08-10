@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Role, MemberStatus } from "@prisma/client";
+import { Role, MemberStatus, PackageStatus } from "@prisma/client";
 import { AccountsTable, type AccountRow } from "@/components/admin/tables/accounts-table";
 import {
   canCreateTerminal,
@@ -28,7 +28,7 @@ export default async function AdminAccountPage() {
   const showApiKey = user.role === Role.SUPER_ADMIN;
   const canMutate = user.role === Role.SUPER_ADMIN;
 
-  const [terminals, members] = await Promise.all([
+  const [terminals, members, packages] = await Promise.all([
     prisma.terminal.findMany({
       where: terminalOwnerFilter(user),
       include: {
@@ -40,6 +40,8 @@ export default async function AdminAccountPage() {
             name: true,
             passwordTrading: true,
             serverBroker: true,
+            package: { select: { name: true } },
+            affiliate: { select: { code: true } },
           },
         },
       },
@@ -53,12 +55,21 @@ export default async function AdminAccountPage() {
             email: true,
             name: true,
             idTrading: true,
+            passwordTrading: true,
             serverBroker: true,
+            packageId: true,
           },
           orderBy: { name: "asc" },
         })
       : Promise.resolve([]),
+    prisma.package.findMany({
+      where: { status: PackageStatus.ACTIVE },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
+
+  const packageNameById = new Map(packages.map((p) => [p.id, p.name]));
 
   const rows: AccountRow[] = terminals.map((t) => ({
     id: t.id,
@@ -66,11 +77,18 @@ export default async function AdminAccountPage() {
     name: t.name,
     online: isOnline(t.lastSeenAt),
     eaStatus: t.snapshot?.status ?? "—",
+    balance: t.snapshot?.balance != null ? String(t.snapshot.balance) : null,
     apiKey: showApiKey ? decryptApiKey(t.apiKeyEnc) : null,
     ownerEmail: t.memberOwner?.email ?? t.owner?.email ?? "—",
     ownerName: t.memberOwner?.name ?? t.owner?.displayName ?? null,
-    passwordTrading: t.memberOwner?.passwordTrading ?? null,
-    serverBroker: t.memberOwner?.serverBroker ?? null,
+    passwordTrading: t.passwordTrading ?? t.memberOwner?.passwordTrading ?? null,
+    serverBroker: t.serverBroker ?? t.memberOwner?.serverBroker ?? null,
+    packageId: t.packageId ?? null,
+    packageName:
+      (t.packageId ? packageNameById.get(t.packageId) : undefined) ??
+      t.memberOwner?.package?.name ??
+      null,
+    referralCode: t.memberOwner?.affiliate?.code ?? null,
     expiry: formatExpiryDate(t.expiresAt),
     expiryLabel: expiryStatus(t.expiresAt).label,
     expiresAt: t.expiresAt?.toISOString() ?? null,
@@ -81,14 +99,16 @@ export default async function AdminAccountPage() {
     email: m.email,
     displayName: m.name,
     idTrading: m.idTrading,
+    passwordTrading: m.passwordTrading,
     serverBroker: m.serverBroker,
+    packageId: m.packageId,
   }));
 
   return (
     <AccountsTable
       header={
         <div className="space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight">EA Account</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Daftar Akun EA</h2>
           <p className="text-sm text-muted-foreground">
             {canMutate
               ? "Daftar Account EA yang terhubung dengan member."
@@ -103,6 +123,7 @@ export default async function AdminAccountPage() {
       canCreate={canCreate}
       canGenerateApiKey={showApiKey}
       traders={traders}
+      packages={packages}
     />
   );
 }

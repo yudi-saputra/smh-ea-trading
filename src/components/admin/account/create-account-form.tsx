@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import {
   Select,
   SelectContent,
@@ -34,18 +35,27 @@ export type TraderOption = {
   email: string;
   displayName: string | null;
   idTrading: string;
+  passwordTrading: string;
   serverBroker: string;
+  packageId: string;
+};
+
+export type AccountPackageOption = {
+  id: string;
+  name: string;
 };
 
 export function CreateAccountForm({
   isAdmin,
   traders,
+  packages = [],
   listHref = "/admin/account",
   embedded = false,
   onDone,
 }: {
   isAdmin: boolean;
   traders: TraderOption[];
+  packages?: AccountPackageOption[];
   listHref?: string;
   /** Skip Card wrapper — for use inside Dialog. */
   embedded?: boolean;
@@ -54,7 +64,10 @@ export function CreateAccountForm({
 }) {
   const router = useRouter();
   const [ownerMemberId, setOwnerMemberId] = useState("");
+  const [packageId, setPackageId] = useState("");
   const [terminalId, setTerminalId] = useState("");
+  const [passwordTrading, setPasswordTrading] = useState("");
+  const [serverBroker, setServerBroker] = useState("");
   const [accountName, setAccountName] = useState("");
   const [durationMonths, setDurationMonths] = useState("1");
   const [error, setError] = useState<string | null>(null);
@@ -70,11 +83,6 @@ export function CreateAccountForm({
         keywords: `${t.email} ${t.idTrading} ${t.serverBroker}`,
       })),
     [traders],
-  );
-
-  const selectedMember = useMemo(
-    () => traders.find((t) => t.id === ownerMemberId) ?? null,
-    [traders, ownerMemberId],
   );
 
   const expiresAtYmd = useMemo(
@@ -105,10 +113,8 @@ export function CreateAccountForm({
     setOwnerMemberId(id);
     setError(null);
     const m = traders.find((t) => t.id === id);
-    if (!m) return;
-    // Prefill from register ID Trading; admin can change for akun ke-2+.
-    setTerminalId(m.idTrading);
-    setAccountName(m.displayName?.trim() || m.email);
+    // Only suggest package; trading fields stay empty so multi-akun is entered manually.
+    if (m?.packageId) setPackageId(m.packageId);
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -118,9 +124,21 @@ export function CreateAccountForm({
       setError("Pilih member terlebih dahulu");
       return;
     }
+    if (!packageId) {
+      setError("Pilih paket terlebih dahulu");
+      return;
+    }
     const tid = terminalId.trim();
     if (!tid) {
       setError("ID Trading wajib diisi");
+      return;
+    }
+    if (!passwordTrading.trim()) {
+      setError("Password Trading wajib diisi");
+      return;
+    }
+    if (!serverBroker.trim()) {
+      setError("Server Broker wajib diisi");
       return;
     }
     setLoading(true);
@@ -130,7 +148,10 @@ export function CreateAccountForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ownerMemberId,
+          packageId,
           terminalId: tid,
+          passwordTrading: passwordTrading.trim(),
+          serverBroker: serverBroker.trim(),
           name: accountName.trim() || undefined,
           ...(isAdmin ? { expiresAt: expiresAtYmd } : {}),
         }),
@@ -187,99 +208,154 @@ export function CreateAccountForm({
   const form = (
     <form onSubmit={(e) => void onSubmit(e)} className="grid gap-4">
       {embedded ? (
-        <DialogHeader>
+        <DialogHeader className="sm:col-span-2 mb-4">
           <DialogTitle>Tambah Akun</DialogTitle>
-          <DialogDescription>
-            Satu member bisa punya beberapa akun.
-          </DialogDescription>
         </DialogHeader>
       ) : null}
 
       {error ? (
-        <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive sm:col-span-2">
           {error}
         </p>
       ) : null}
 
-      {isAdmin ? (
-        <div className="grid gap-2">
-          <Label htmlFor="owner">Member</Label>
-          <SearchableSelect
-            id="owner"
-            value={ownerMemberId}
-            onValueChange={onPickMember}
-            options={memberOptions}
-            disabled={traders.length === 0}
-            placeholder={
-              traders.length === 0
-                ? "Belum ada member aktif"
-                : "Pilih member"
-            }
-            searchPlaceholder="Cari nama, email, atau ID trading…"
-            emptyText="Member tidak ditemukan."
-          />
-        </div>
-      ) : null}
+      <div className="grid gap-4 sm:grid-cols-2 sm:col-span-2">
+        {isAdmin ? (
+          <div className="grid gap-2 sm:col-span-2">
+            <Label htmlFor="owner">Member</Label>
+            <SearchableSelect
+              id="owner"
+              value={ownerMemberId}
+              onValueChange={onPickMember}
+              options={memberOptions}
+              disabled={traders.length === 0}
+              placeholder={
+                traders.length === 0
+                  ? "Belum ada member aktif"
+                  : "Pilih member"
+              }
+              searchPlaceholder="Cari nama, email, atau ID trading…"
+              emptyText="Member tidak ditemukan."
+            />
+          </div>
+        ) : null}
 
-      {isAdmin ? (
-        <div className="grid gap-2">
-          <Label htmlFor="terminalId">ID Trading</Label>
-          <Input
-            id="terminalId"
-            value={terminalId}
-            onChange={(e) => setTerminalId(e.target.value)}
-            autoComplete="off"
-            required
-            className="font-mono"
-          />
-        </div>
-      ) : null}
+        {isAdmin ? (
+          <div className="grid gap-2">
+            <Label htmlFor="package">Paket</Label>
+            <Select
+              value={packageId}
+              onValueChange={(v) => setPackageId(v ?? "")}
+              disabled={packages.length === 0}
+            >
+              <SelectTrigger id="package" className="w-full">
+                <SelectValue
+                  placeholder={
+                    packages.length === 0
+                      ? "Belum ada paket aktif"
+                      : "Pilih paket"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {packages.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
 
-      {isAdmin ? (
-        <div className="grid gap-2">
-          <Label htmlFor="accountName">Label / Keterangan</Label>
-          <Input
-            id="accountName"
-            value={accountName}
-            onChange={(e) => setAccountName(e.target.value)}
-            autoComplete="off"
-          />
-        </div>
-      ) : null}
+        {isAdmin ? (
+          <div className="grid gap-2">
+            <Label htmlFor="accountName">Label / Keterangan</Label>
+            <Input
+              id="accountName"
+              value={accountName}
+              onChange={(e) => setAccountName(e.target.value)}
+              autoComplete="off"
+            />
+          </div>
+        ) : null}
 
-      {isAdmin ? (
-        <div className="grid gap-2">
-          <Label htmlFor="duration">Expired</Label>
-          <Select
-            value={durationMonths}
-            onValueChange={(v) => setDurationMonths(v ?? "1")}
-          >
-            <SelectTrigger id="duration" className="w-full">
-              <SelectValue placeholder="Pilih Expired" />
-            </SelectTrigger>
-            <SelectContent>
-              {EXPIRY_DURATION_OPTIONS.map((opt) => (
-                <SelectItem key={opt.months} value={String(opt.months)}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Alert>
-            <CalendarClockIcon />
-            <AlertTitle>Expired</AlertTitle>
-            <AlertDescription>
-              {formatExpiryYmdLabel(expiresAtYmd)}
-            </AlertDescription>
-          </Alert>
-        </div>
-      ) : null}
+        {isAdmin ? (
+          <div className="grid gap-2">
+            <Label htmlFor="terminalId">ID Trading</Label>
+            <Input
+              id="terminalId"
+              value={terminalId}
+              onChange={(e) => setTerminalId(e.target.value)}
+              autoComplete="off"
+              required
+              className="font-mono"
+            />
+          </div>
+        ) : null}
+
+        {isAdmin ? (
+          <div className="grid gap-2">
+            <Label htmlFor="passwordTrading">Password Trading</Label>
+            <PasswordInput
+              id="passwordTrading"
+              value={passwordTrading}
+              onChange={(e) => setPasswordTrading(e.target.value)}
+              autoComplete="off"
+              required
+            />
+          </div>
+        ) : null}
+
+        {isAdmin ? (
+          <div className="grid gap-2">
+            <Label htmlFor="serverBroker">Server Broker</Label>
+            <Input
+              id="serverBroker"
+              value={serverBroker}
+              onChange={(e) => setServerBroker(e.target.value)}
+              autoComplete="off"
+              required
+            />
+          </div>
+        ) : null}
+
+        {isAdmin ? (
+          <div className="grid gap-2">
+            <Label htmlFor="duration">Expired</Label>
+            <Select
+              value={durationMonths}
+              onValueChange={(v) => setDurationMonths(v ?? "1")}
+            >
+              <SelectTrigger id="duration" className="w-full">
+                <SelectValue placeholder="Pilih Expired" />
+              </SelectTrigger>
+              <SelectContent>
+                {EXPIRY_DURATION_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.months} value={String(opt.months)}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
+
+        {isAdmin ? (
+          <div className="sm:col-span-2">
+            <Alert>
+              <CalendarClockIcon />
+              <AlertTitle>Expired - {formatExpiryYmdLabel(expiresAtYmd)}</AlertTitle>
+            </Alert>
+          </div>
+        ) : null}
+      </div>
 
       <div
         className={
           embedded
-            ? "flex justify-end gap-2 border-t border-border/50 pt-4"
-            : "flex justify-end gap-2"
+            ? "flex justify-end gap-2 border-t border-border/50 pt-4 sm:col-span-2"
+            : "flex justify-end gap-2 sm:col-span-2"
         }
       >
         {embedded && onDone ? (
@@ -296,7 +372,12 @@ export function CreateAccountForm({
           type="submit"
           disabled={
             loading ||
-            (isAdmin && (!ownerMemberId || !terminalId.trim()))
+            (isAdmin &&
+              (!ownerMemberId ||
+                !packageId ||
+                !terminalId.trim() ||
+                !passwordTrading.trim() ||
+                !serverBroker.trim()))
           }
         >
           {loading ? "Menyimpan…" : "Simpan"}

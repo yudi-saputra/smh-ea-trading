@@ -48,7 +48,8 @@ model Package {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  members Member[]
+  members   Member[]
+  terminals Terminal[] @relation("TerminalPackage")
 }
 
 model Affiliate {
@@ -157,7 +158,12 @@ model Terminal {
   /** Legacy User owner — prefer ownerMemberId for new terminals. */
   ownerUserId   String?   @map("owner_user_id")
   ownerMemberId String?   @map("owner_member_id")
-  createdById   String    @map("created_by_id")
+  /** Package for this EA account (per-terminal; multi-akun can differ). */
+  packageId     String?   @map("package_id")
+  /** MT login credentials for this terminal (not shared with sibling accounts). */
+  passwordTrading String? @map("password_trading")
+  serverBroker    String? @map("server_broker")
+  createdById  String    @map("created_by_id")
   enabled       Boolean   @default(true)
   expiresAt     DateTime? @map("expires_at") // null = no expiry; licence end (UTC)
   lastSeenAt    DateTime? @map("last_seen_at")
@@ -166,12 +172,14 @@ model Terminal {
 
   owner       User?             @relation("TerminalOwner", fields: [ownerUserId], references: [id])
   memberOwner Member?           @relation("TerminalMemberOwner", fields: [ownerMemberId], references: [id])
+  eaPackage   Package?          @relation("TerminalPackage", fields: [packageId], references: [id], onDelete: SetNull)
   createdBy   User              @relation("TerminalCreator", fields: [createdById], references: [id])
   snapshot    TerminalSnapshot?
   commands    Command[]
 
   @@index([ownerUserId])
   @@index([ownerMemberId])
+  @@index([packageId])
   @@map("terminals")
 }
 

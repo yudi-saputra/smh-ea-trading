@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMH EA — Smart Martingale Hedging Engine untuk XAUUSD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0a0d12;
+    --panel: #12161f;
+    --panel-2: #171c27;
+    --line: #262b36;
+    --line-soft: #1c2129;
+    --gold: #c9a961;
+    --gold-bright: #e8c874;
+    --bull: #7ba787;
+    --bear: #a5686a;
+    --text: #edeae2;
+    --text-muted: #8b8f99;
+    --text-faint: #5b6070;
+    --radius: 10px;
+    --wrap: 1180px;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Manrope', sans-serif;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    background-image: radial-gradient(circle at 1px 1px, rgba(201,169,97,0.06) 1px, transparent 0);
+    background-size: 34px 34px;
+  }
+
+  a{color:inherit; text-decoration:none;}
+  img,svg{display:block; max-width:100%;}
+  ul{list-style:none;}
+
+  h1,h2,h3{ font-family:'Space Grotesk', sans-serif; font-weight:600; letter-spacing:-0.01em; line-height:1.15; }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+
+  .wrap{ max-width:var(--wrap); margin:0 auto; padding:0 28px; }
+
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:0.14em;
+    text-transform:uppercase; color:var(--gold); display:inline-flex; align-items:center; gap:8px;
+  }
+  .eyebrow::before{ content:""; width:6px; height:6px; background:var(--gold); border-radius:50%; display:inline-block; }
+
+  :focus-visible{ outline:2px solid var(--gold-bright); outline-offset:3px; }
+
+  /* ---------- Icon system ---------- */
+  .icon{ width:20px; height:20px; stroke:currentColor; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+  .icon-badge{
+    width:44px; height:44px; border-radius:9px;
+    border:1px solid var(--line);
+    background:var(--panel-2);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--gold);
+    margin-bottom:16px;
+    flex-shrink:0;
+  }
+  .icon-badge.lg{ width:60px; height:60px; border-radius:12px; }
+  .icon-badge.lg .icon{ width:28px; height:28px; }
+
+  .robot-chip{
+    position:absolute; top:16px; right:16px;
+    display:inline-flex; align-items:center; gap:8px;
+    background:rgba(10,13,18,0.75); border:1px solid var(--line);
+    padding:6px 12px 6px 8px; border-radius:99px;
+  }
+  .robot-chip .icon{ width:16px; height:16px; color:var(--gold-bright); }
+  .robot-chip span{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--text-muted); letter-spacing:.06em; }
+  .pulse-dot{ width:6px; height:6px; border-radius:50%; background:var(--bull); box-shadow:0 0 0 0 rgba(123,167,135,.6); animation:pulse 2s infinite; }
+  @keyframes pulse{
+    0%{ box-shadow:0 0 0 0 rgba(123,167,135,.55); }
+    70%{ box-shadow:0 0 0 7px rgba(123,167,135,0); }
+    100%{ box-shadow:0 0 0 0 rgba(123,167,135,0); }
+  }
+
+  /* ---------- Ticker ---------- */
+  .ticker{ background:#080a0e; border-bottom:1px solid var(--line); overflow:hidden; white-space:nowrap; padding:8px 0; }
+  .ticker-track{ display:inline-flex; animation: scroll-left 34s linear infinite; }
+  .ticker-track span{ font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--text-muted); padding:0 26px; border-right:1px solid var(--line-soft); }
+  .ticker-track span b{ color:var(--bull); font-weight:600; }
+  @keyframes scroll-left{ from{transform:translateX(0);} to{transform:translateX(-50%);} }
+
+  /* ---------- Nav ---------- */
+  header{ position:sticky; top:0; z-index:50; background:rgba(10,13,18,0.85); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+  nav{ display:flex; align-items:center; justify-content:space-between; padding:18px 0; }
+  .logo{ font-family:'Space Grotesk', sans-serif; font-weight:700; font-size:19px; display:flex; align-items:center; gap:10px; }
+  .logo .mark{ width:30px; height:30px; border:1.5px solid var(--gold); border-radius:7px; display:flex; align-items:center; justify-content:center; color:var(--gold); }
+  .logo .mark .icon{ width:17px; height:17px; }
+  .nav-links{ display:flex; gap:32px; font-size:14px; color:var(--text-muted); }
+  .nav-links a:hover{ color:var(--gold-bright); }
+  .nav-cta{ display:flex; align-items:center; gap:18px; }
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:11px 20px; border-radius:6px; font-size:14px; font-weight:600; cursor:pointer; transition:all .15s ease; border:1px solid transparent; font-family:'Manrope', sans-serif; }
+  .btn-primary{ background:var(--gold); color:#0a0d12; }
+  .btn-primary:hover{ background:var(--gold-bright); }
+  .btn-ghost{ border-color:var(--line); color:var(--text); }
+  .btn-ghost:hover{ border-color:var(--gold); color:var(--gold-bright); }
+  .menu-toggle{ display:none; }
+  #menu-check{ display:none; }
+
+  /* ---------- Hero ---------- */
+  .hero{ padding:88px 0 100px; border-bottom:1px solid var(--line); position:relative; }
+  .hero-grid{ display:grid; grid-template-columns:1.05fr 1fr; gap:56px; align-items:center; }
+  .hero h1{ font-size:clamp(32px, 4vw, 50px); margin:18px 0 22px; color:var(--text); }
+  .hero h1 em{ font-style:normal; color:var(--gold-bright); }
+  .hero p.lead{ color:var(--text-muted); font-size:16.5px; max-width:480px; margin-bottom:32px; }
+  .hero-actions{ display:flex; gap:14px; margin-bottom:36px; flex-wrap:wrap; }
+  .hero-meta{ display:flex; gap:28px; flex-wrap:wrap; }
+  .hero-meta div{ font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--text-faint); border-left:2px solid var(--line); padding-left:10px; }
+  .hero-meta b{ display:block; font-family:'Manrope', sans-serif; color:var(--text); font-size:14px; font-weight:700; margin-bottom:2px; }
+
+  .chart-panel{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:18px 18px 14px; position:relative; }
+  .chart-panel .chart-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-faint); }
+
+  .robot-panel{ padding:44px 28px 30px; display:flex; flex-direction:column; align-items:center; }
+  .robot-stage{ position:relative; width:180px; height:180px; display:flex; align-items:center; justify-content:center; margin:20px 0 34px; }
+  .robot-ring{ position:absolute; border:1px solid var(--line); border-radius:50%; }
+  .robot-ring.r1{ width:180px; height:180px; }
+  .robot-ring.r2{ width:132px; height:132px; border-color:rgba(201,169,97,0.35); }
+  .robot-icon{ width:78px; height:78px; stroke:var(--gold-bright); fill:none; stroke-width:1.3; stroke-linecap:round; stroke-linejoin:round; position:relative; z-index:1; }
+  .robot-readout{ width:100%; display:flex; flex-direction:column; gap:0; border-top:1px solid var(--line); }
+  .robot-readout div{ display:flex; justify-content:space-between; padding:13px 4px; border-bottom:1px solid var(--line-soft); }
+  .robot-readout span{ font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--text-faint); }
+  .robot-readout b{ font-family:'Manrope', sans-serif; font-size:13.5px; font-weight:700; color:var(--text); }
+  @media (prefers-reduced-motion: reduce){ .robot-ring{ animation:none !important; } }
+
+  .fade-in{ opacity:0; animation: fade-up .7s ease forwards; }
+  .d1{ animation-delay:.5s; } .d2{ animation-delay:.8s; } .d3{ animation-delay:1.05s; }
+  .d4{ animation-delay:1.3s; } .d5{ animation-delay:1.55s; } .d6{ animation-delay:1.8s; }
+  @keyframes fade-up{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:translateY(0);} }
+  @media (prefers-reduced-motion: reduce){
+    .fade-in{ animation:none !important; opacity:1 !important; }
+    .ticker-track{ animation:none !important; }
+    .pulse-dot{ animation:none !important; }
+  }
+
+  /* ---------- Section shell ---------- */
+  section{ padding:96px 0; border-bottom:1px solid var(--line); }
+  .section-head{ max-width:640px; margin-bottom:52px; }
+  .section-head h2{ font-size:clamp(26px, 3vw, 36px); margin-top:14px; }
+  .section-head p{ color:var(--text-muted); margin-top:14px; font-size:15.5px; }
+
+  .zone-bracket{ display:inline-flex; align-items:center; gap:0; }
+  .zone-bracket::before, .zone-bracket::after{ content:""; width:10px; height:10px; border:1.5px solid var(--gold); }
+  .zone-bracket::before{ border-right:none; border-bottom:none; }
+  .zone-bracket::after{ border-left:none; border-top:none; }
+
+  /* ---------- Pain points ---------- */
+  .pain-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:22px; }
+  .pain-card{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:26px 24px; }
+  .pain-card .tag{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--bear); text-transform:uppercase; letter-spacing:.08em; }
+  .pain-card h3{ font-size:18px; margin:12px 0 10px; font-weight:600; }
+  .pain-card p{ color:var(--text-muted); font-size:14.5px; }
+
+  /* ---------- How it works ---------- */
+  .steps{ display:grid; grid-template-columns:repeat(4, 1fr); gap:0; border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; }
+  .step{ padding:30px 24px; border-right:1px solid var(--line); background:var(--panel); position:relative; }
+  .step:last-child{ border-right:none; }
+  .step .num{ font-family:'IBM Plex Mono', monospace; color:var(--gold); font-size:12px; margin-bottom:16px; display:block; }
+  .step h3{ font-size:16px; margin-bottom:10px; }
+  .step p{ color:var(--text-muted); font-size:13.5px; }
+
+  /* ---------- Feature grid ---------- */
+  .feature-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; }
+  .feature{ background:var(--panel); padding:28px 26px; }
+  .feature .mono-tag{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-faint); letter-spacing:.06em; margin-top:2px; display:block; margin-bottom:2px;}
+  .feature h3{ font-size:16.5px; margin:2px 0 10px; }
+  .feature p{ color:var(--text-muted); font-size:14px; }
+
+  /* ---------- For whom ---------- */
+  .whom{ display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:start; }
+  .whom ul li{ display:flex; gap:12px; padding:14px 0; border-bottom:1px solid var(--line-soft); font-size:15px; color:var(--text-muted); }
+  .whom ul li::before{ content:"—"; color:var(--gold); flex-shrink:0; }
+  .whom ul li b{ color:var(--text); font-weight:600; }
+
+  /* ---------- Pricing ---------- */
+  .pricing-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:22px; align-items:stretch; }
+  .price-card{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:30px 26px; display:flex; flex-direction:column; position:relative; }
+  .price-card.highlight{ border-color:var(--gold); background:linear-gradient(180deg, rgba(201,169,97,0.07), var(--panel) 45%); transform:translateY(-8px); }
+  .price-card .ribbon{ position:absolute; top:-1px; right:20px; background:var(--gold); color:#0a0d12; font-family:'IBM Plex Mono', monospace; font-size:10.5px; font-weight:600; padding:5px 10px; border-radius:0 0 6px 6px; letter-spacing:.04em; }
+  .price-card .plan-name{ font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--gold); text-transform:uppercase; letter-spacing:.1em; }
+  .price-card h3{ font-size:24px; margin:12px 0 6px; }
+  .price-card .price-note{ color:var(--text-muted); font-size:13px; margin-bottom:22px; min-height:34px; }
+  .price-card ul{ margin-bottom:24px; flex-grow:1; }
+  .price-card ul li{ display:flex; gap:10px; padding:9px 0; font-size:13.8px; color:var(--text-muted); border-top:1px solid var(--line-soft); }
+  .price-card ul li:first-child{ border-top:none; }
+  .price-card ul li::before{ content:"✓"; color:var(--bull); flex-shrink:0; }
+  .price-card ul li.no::before{ content:"—"; color:var(--text-faint); }
+  .price-card ul li.no{ color:var(--text-faint); }
+
+  /* ---------- FAQ ---------- */
+  .faq{ max-width:760px; }
+  details{ border-bottom:1px solid var(--line); padding:20px 0; }
+  details summary{ cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; font-family:'Space Grotesk', sans-serif; font-weight:500; font-size:16px; }
+  details summary::-webkit-details-marker{ display:none; }
+  details summary::after{ content:"+"; font-family:'IBM Plex Mono', monospace; color:var(--gold); font-size:20px; transition:transform .2s ease; }
+  details[open] summary::after{ transform:rotate(45deg); }
+  details p{ color:var(--text-muted); font-size:14.5px; margin-top:14px; max-width:640px; }
+
+  /* ---------- CTA band ---------- */
+  .cta-band{ text-align:center; padding:100px 0; }
+  .cta-band h2{ font-size:clamp(28px,3.6vw,42px); margin-bottom:16px; }
+  .cta-band p{ color:var(--text-muted); margin-bottom:32px; }
+
+  /* ---------- Footer ---------- */
+  footer{ padding:50px 0 40px; }
+  .footer-grid{ display:flex; justify-content:space-between; align-items:flex-start; gap:40px; flex-wrap:wrap; margin-bottom:32px; }
+  .footer-brand p{ color:var(--text-muted); font-size:13.5px; max-width:320px; margin-top:10px;}
+  .footer-links{ display:flex; gap:56px; flex-wrap:wrap; }
+  .footer-col h4{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.08em; margin-bottom:14px; }
+  .footer-col a{ display:block; color:var(--text-muted); font-size:14px; margin-bottom:10px; }
+  .footer-col a:hover{ color:var(--gold-bright); }
+  .disclaimer{ border-top:1px solid var(--line); padding-top:24px; font-size:12px; color:var(--text-faint); line-height:1.7; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 900px){
+    .pricing-grid{ grid-template-columns:1fr; }
+    .price-card.highlight{ transform:none; }
+  }
+  @media (max-width: 860px){
+    .hero-grid{ grid-template-columns:1fr; }
+    .pain-grid, .feature-grid{ grid-template-columns:1fr; }
+    .steps{ grid-template-columns:1fr 1fr; }
+    .step{ border-bottom:1px solid var(--line); }
+    .whom{ grid-template-columns:1fr; }
+  }
+  @media (max-width: 680px){
+    .nav-links{ display:none; }
+    .menu-toggle{ display:inline-flex; background:none; border:1px solid var(--line); color:var(--text); border-radius:6px; padding:9px 12px; font-size:13px; cursor:pointer; }
+    #menu-check:checked ~ header .mobile-panel{ display:flex; }
+    .mobile-panel{ display:none; flex-direction:column; gap:2px; padding:14px 28px 20px; border-top:1px solid var(--line); background:var(--bg); }
+    .mobile-panel a{ padding:12px 0; color:var(--text-muted); border-bottom:1px solid var(--line-soft); font-size:14.5px; }
+    .steps{ grid-template-columns:1fr; }
+    .footer-grid{ flex-direction:column; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== Icon symbol library ===== -->
+<svg style="display:none">
+  <symbol id="i-robot" viewBox="0 0 24 24">
+    <circle cx="12" cy="4" r="1.4"/>
+    <line x1="12" y1="5.4" x2="12" y2="7.5"/>
+    <rect x="5" y="7.5" width="14" height="11" rx="3"/>
+    <circle cx="9.3" cy="12.5" r="1.2" fill="currentColor" stroke="none"/>
+    <circle cx="14.7" cy="12.5" r="1.2" fill="currentColor" stroke="none"/>
+    <path d="M9 15.6c.8.7 5.2.7 6 0"/>
+    <line x1="2.6" y1="12" x2="5" y2="12"/>
+    <line x1="19" y1="12" x2="21.4" y2="12"/>
+  </symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24">
+    <path d="M12 3 3 8l9 5 9-5-9-5z"/>
+    <path d="M3 13l9 5 9-5"/>
+    <path d="M3 17.5l9 5 9-5"/>
+  </symbol>
+  <symbol id="i-scale" viewBox="0 0 24 24">
+    <line x1="12" y1="3" x2="12" y2="20"/>
+    <line x1="5" y1="7" x2="19" y2="7"/>
+    <path d="M3 7l3-4.2L9 7l-3 5.5L3 7z"/>
+    <path d="M15 7l3-4.2 3 4.2-3 5.5-3-5.5z"/>
+    <line x1="8" y1="21" x2="16" y2="21"/>
+  </symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24">
+    <path d="M12 3l7 3v5.5c0 4.6-3 7.7-7 9-4-1.3-7-4.4-7-9V6l7-3z"/>
+    <circle cx="12" cy="11" r="2"/>
+    <line x1="12" y1="13" x2="12" y2="15.3"/>
+  </symbol>
+  <symbol id="i-dollar" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="9"/>
+    <path d="M14.5 9.2c-.4-.7-1.4-1.2-2.5-1.2-1.5 0-2.7.9-2.7 2s1 1.6 2.7 2 2.7.9 2.7 2-1.2 2-2.7 2c-1.1 0-2.1-.5-2.5-1.2"/>
+    <line x1="12" y1="6.5" x2="12" y2="17.5"/>
+  </symbol>
+  <symbol id="i-target" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="9"/>
+    <circle cx="12" cy="12" r="5"/>
+    <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="i-server" viewBox="0 0 24 24">
+    <rect x="3.5" y="4" width="17" height="6.5" rx="1.5"/>
+    <rect x="3.5" y="13.5" width="17" height="6.5" rx="1.5"/>
+    <circle cx="7" cy="7.2" r="1" fill="currentColor" stroke="none"/>
+    <circle cx="7" cy="16.7" r="1" fill="currentColor" stroke="none"/>
+    <line x1="10.5" y1="7.2" x2="17" y2="7.2"/>
+    <line x1="10.5" y1="16.7" x2="17" y2="16.7"/>
+  </symbol>
+  <symbol id="i-panel" viewBox="0 0 24 24">
+    <rect x="3.5" y="4.5" width="17" height="15" rx="2"/>
+    <line x1="7" y1="9" x2="17" y2="9"/>
+    <line x1="7" y1="13" x2="14" y2="13"/>
+    <circle cx="17.5" cy="13" r="1.4" fill="currentColor" stroke="none"/>
+    <line x1="7" y1="16" x2="12" y2="16"/>
+  </symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24">
+    <line x1="5" y1="12" x2="19" y2="12"/>
+    <path d="M13 6l6 6-6 6"/>
+  </symbol>
+</svg>
+
+<input type="checkbox" id="menu-check">
+
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <span>XAUUSD &nbsp;2,382.40&nbsp; <b>▲ 0.42%</b></span>
+    <span>ROBOT: AKTIF</span>
+    <span>MODE: AMAN</span>
+    <span>POSISI PENYEIMBANG: SIAGA</span>
+    <span>AMBIL PROFIT: OTOMATIS</span>
+    <span>BATAS RUGI HARIAN: BELUM TERSENTUH</span>
+    <span>XAUUSD &nbsp;2,382.40&nbsp; <b>▲ 0.42%</b></span>
+    <span>ROBOT: AKTIF</span>
+    <span>MODE: AMAN</span>
+    <span>POSISI PENYEIMBANG: SIAGA</span>
+    <span>AMBIL PROFIT: OTOMATIS</span>
+    <span>BATAS RUGI HARIAN: BELUM TERSENTUH</span>
+  </div>
+</div>
+
+<header>
+  <div class="wrap">
+    <nav>
+      <a href="#" class="logo"><span class="mark"><svg class="icon"><use href="#i-robot"/></svg></span> SMH EA</a>
+      <ul class="nav-links">
+        <li><a href="#cara-kerja">Cara Kerja</a></li>
+        <li><a href="#modul">Modul</a></li>
+        <li><a href="#untuk-siapa">Untuk Siapa</a></li>
+        <li><a href="#harga">Paket &amp; Harga</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+      <div class="nav-cta">
+        <a href="#harga" class="btn btn-primary">Mulai Trial</a>
+        <label for="menu-check" class="menu-toggle">Menu</label>
+      </div>
+    </nav>
+    <div class="mobile-panel">
+      <a href="#cara-kerja">Cara Kerja</a>
+      <a href="#modul">Modul</a>
+      <a href="#untuk-siapa">Untuk Siapa</a>
+      <a href="#harga">Paket &amp; Harga</a>
+      <a href="#faq">FAQ</a>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ================= HERO ================= -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow">EA OTOMATIS UNTUK XAUUSD</span>
+        <h1>Robot trading yang tahu<br>kapan harus <em>tambah posisi</em>,<br>kapan harus <em>berhenti</em>.</h1>
+        <p class="lead">SMH EA adalah robot trading (EA) untuk MetaTrader 5 yang menjalankan strategi martingale (nambah posisi bertahap saat harga melawan) dan hedging (buka posisi lawan arah) secara otomatis — lengkap dengan batas rugi harian supaya tidak kebablasan.</p>
+        <div class="hero-actions">
+          <a href="#harga" class="btn btn-primary">Coba Trial Gratis</a>
+          <a href="#cara-kerja" class="btn btn-ghost">Lihat Cara Kerja →</a>
+        </div>
+        <div class="hero-meta">
+          <div><b>Otomatis Penuh</b>Jalan sendiri 24/5</div>
+          <div><b>Ada Batas Rugi</b>Berhenti sesuai aturan</div>
+          <div><b>Aman Dipakai</b>Terkunci per akun</div>
+        </div>
+      </div>
+
+      <div class="chart-panel robot-panel">
+        <div class="robot-chip">
+          <span>ENGINE AKTIF</span>
+          <span class="pulse-dot"></span>
+        </div>
+        <div class="robot-stage">
+          <div class="robot-ring r1"></div>
+          <div class="robot-ring r2"></div>
+          <svg class="robot-icon" viewBox="0 0 24 24">
+            <use href="#i-robot"/>
+          </svg>
+        </div>
+        <div class="robot-readout">
+          <div><span>Pasangan</span><b>XAUUSD</b></div>
+          <div><span>Mode</span><b>Martingale + Hedging</b></div>
+          <div><span>Kontrol</span><b>Panel On-Chart</b></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PAIN POINTS ================= -->
+  <section>
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Masalah</span>
+        <h2>Kalau dikerjakan manual, biasanya begini:</h2>
+        <p>Strateginya sebenarnya sudah benar. Masalahnya ada di eksekusi manusia — capek, telat, atau kepanikan.</p>
+      </div>
+      <div class="pain-grid">
+        <div class="pain-card">
+          <span class="tag">Salah Hitung</span>
+          <h3>Ukuran lot dihitung manual, rawan keliru.</h3>
+          <p>Salah sedikit saat nambah posisi, total risiko bisa jadi jauh lebih besar dari rencana.</p>
+        </div>
+        <div class="pain-card">
+          <span class="tag">Lupa Berhenti</span>
+          <h3>Batas rugi harian cuma niat, bukan aturan.</h3>
+          <p>Sudah niat berhenti di batas tertentu, tapi pas kejadian nyata, batas itu sering dilanggar sendiri.</p>
+        </div>
+        <div class="pain-card">
+          <span class="tag">Telat Buka Hedge</span>
+          <h3>Posisi penyeimbang dibuka kelamaan.</h3>
+          <p>Saat harga sudah bergerak jauh, posisi lawan arah yang dibuka manual jadi kurang efektif.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CARA KERJA ================= -->
+  <section id="cara-kerja">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Cara Kerja</span>
+        <h2>Simpel — empat langkah otomatis.</h2>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <span class="num">01</span>
+          <h3>Buka Posisi</h3>
+          <p>EA membuka posisi pertama secara otomatis sesuai pengaturan lot dasar.</p>
+        </div>
+        <div class="step">
+          <span class="num">02</span>
+          <h3>Tambah Posisi Bertahap</h3>
+          <p>Kalau harga melawan, EA menambah posisi bertahap dan terkontrol — bukan asal gandakan lot.</p>
+        </div>
+        <div class="step">
+          <span class="num">03</span>
+          <h3>Buka Posisi Penyeimbang</h3>
+          <p>Saat perlu, EA membuka posisi lawan arah (hedge) untuk membantu menyeimbangkan kerugian sementara.</p>
+        </div>
+        <div class="step">
+          <span class="num">04</span>
+          <h3>Tutup di Profit</h3>
+          <p>Semua posisi dikelola bareng, lalu ditutup otomatis begitu target profit tercapai.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= MODUL / FITUR ================= -->
+  <section id="modul">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow zone-bracket" style="padding:0 8px;">Fitur</span>
+        <h2>Apa saja yang ada di dalamnya.</h2>
+        <p>Semua fitur ini dipakai langsung tiap hari, bukan sekadar tempelan.</p>
+      </div>
+      <div class="feature-grid">
+        <div class="feature">
+          <div class="icon-badge"><svg class="icon"><use href="#i-layers"/></svg></div>
+          <span class="mono-tag">2 PILIHAN MODE</span>
+          <h3>Mode Aman &amp; Mode Cepat</h3>
+          <p>Pilih sendiri seberapa besar posisi tambahan dibuka — lebih pelan atau lebih agresif.</p>
+        </div>
+        <div class="feature">
+          <div class="icon-badge"><svg class="icon"><use href="#i-scale"/></svg></div>
+          <span class="mono-tag">HEDGING</span>
+          <h3>Posisi Penyeimbang Otomatis</h3>
+          <p>EA bisa membuka posisi lawan arah sendiri untuk membantu menahan kerugian sementara.</p>
+        </div>
+        <div class="feature">
+          <div class="icon-badge"><svg class="icon"><use href="#i-dollar"/></svg></div>
+          <span class="mono-tag">BATAS RUGI</span>
+          <h3>Target &amp; Batas Rugi Harian</h3>
+          <p>Cukup atur angka dalam dolar — EA berhenti sendiri kalau target atau batas sudah tercapai.</p>
+        </div>
+        <div class="feature">
+          <div class="icon-badge"><svg class="icon"><use href="#i-target"/></svg></div>
+          <span class="mono-tag">TP OTOMATIS</span>
+          <h3>Ambil Profit Bertahap</h3>
+          <p>Garis take profit mengikuti pergerakan harga, jadi profit bisa diamankan lebih optimal.</p>
+        </div>
+        <div class="feature">
+          <div class="icon-badge"><svg class="icon"><use href="#i-panel"/></svg></div>
+          <span class="mono-tag">MUDAH DIPAKAI</span>
+          <h3>Panel Kontrol di Chart</h3>
+          <p>Semua tombol dan pengaturan ada langsung di chart — tidak perlu aplikasi tambahan.</p>
+        </div>
+        <div class="feature">
+          <div class="icon-badge"><svg class="icon"><use href="#i-shield"/></svg></div>
+          <span class="mono-tag">AMAN</span>
+          <h3>Versi Trial Terkunci</h3>
+          <p>Versi coba gratis dikunci ke satu akun dan ada batas waktunya, jadi aman untuk dibagikan.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= UNTUK SIAPA ================= -->
+  <section id="untuk-siapa">
+    <div class="wrap whom">
+      <div>
+        <span class="eyebrow">Untuk Siapa</span>
+        <h2 style="margin-top:14px; font-size:clamp(24px,2.8vw,32px);">Cocok untuk siapa EA ini?</h2>
+        <p style="color:var(--text-muted); margin-top:16px; font-size:15px;">SMH EA bukan strategi "bebas risiko". Cocok dipakai kalau kamu sudah paham cara kerja martingale dan hedging secara umum, dan mau eksekusinya berjalan konsisten tanpa capek mantau terus.</p>
+      </div>
+      <ul>
+        <li><b>Trading XAUUSD (Gold)</b> — fokus dan diuji khusus untuk pair ini.</li>
+        <li><b>Sudah paham risikonya</b> — tahu bahwa menambah posisi berarti risiko juga bisa membesar.</li>
+        <li><b>Pakai VPS</b> — supaya EA jalan terus 24/5 tanpa tergantung laptop menyala.</li>
+        <li><b>Developer &amp; reseller EA</b> — butuh lisensi yang bisa dibagikan aman ke klien.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ================= HARGA / PAKET ================= -->
+  <section id="harga">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Paket &amp; Harga</span>
+        <h2>Tiga paket, dari uji coba sampai reseller.</h2>
+        <p>Semua paket menjalankan mesin martingale &amp; hedging yang sama — bedanya di masa aktif, jumlah akun, dan dukungan.</p>
+      </div>
+      <div class="pricing-grid">
+
+        <div class="price-card">
+          <span class="plan-name">Trial</span>
+          <h3>Gratis</h3>
+          <p class="price-note">Masa aktif terbatas, terkunci ke satu akun</p>
+          <ul>
+            <li>Mesin martingale &amp; hedging penuh</li>
+            <li>Trailing TP dua tingkat</li>
+            <li>Panel kontrol on-chart</li>
+            <li>Target &amp; batas rugi harian (USD)</li>
+            <li class="no">Mode Cepat</li>
+            <li class="no">Dukungan pemasangan VPS</li>
+            <li class="no">Multi-akun</li>
+          </ul>
+          <a href="#" class="btn btn-ghost" style="width:100%; justify-content:center;">Ajukan Trial</a>
+        </div>
+
+        <div class="price-card highlight">
+          <span class="ribbon">Paling Populer</span>
+          <span class="plan-name">Single License</span>
+          <h3>Hubungi Admin</h3>
+          <p class="price-note">1 akun live, tanpa batas masa aktif</p>
+          <ul>
+            <li>Mesin martingale &amp; hedging penuh</li>
+            <li>Mode Aman &amp; Mode Cepat</li>
+            <li>Trailing TP dua tingkat</li>
+            <li>Target &amp; batas rugi harian (USD)</li>
+            <li>Panel kontrol on-chart</li>
+            <li>Dukungan pemasangan di VPS</li>
+            <li class="no">Multi-akun</li>
+          </ul>
+          <a href="#" class="btn btn-primary" style="width:100%; justify-content:center;">Chat Admin</a>
+        </div>
+
+        <div class="price-card">
+          <span class="plan-name">Reseller / Multi-Akun</span>
+          <h3>Hubungi Admin</h3>
+          <p class="price-note">Untuk distributor &amp; pengelola banyak akun klien</p>
+          <ul>
+            <li>Semua fitur Single License</li>
+            <li>Lisensi untuk banyak akun/klien</li>
+            <li>Proteksi trial per-klien (Account ID &amp; expiry)</li>
+            <li>Prioritas dukungan teknis</li>
+            <li>Skema harga per volume</li>
+          </ul>
+          <a href="#" class="btn btn-ghost" style="width:100%; justify-content:center;">Diskusi Kerja Sama</a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FAQ ================= -->
+  <section id="faq">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">FAQ</span>
+        <h2>Pertanyaan yang sering masuk.</h2>
+      </div>
+      <div class="faq">
+        <details>
+          <summary>Apakah strategi ini bebas risiko?</summary>
+          <p>Tidak. Menambah posisi bertahap berarti risiko juga bisa ikut membesar kalau harga terus melawan. Fitur batas rugi harian membantu mengerem kerugian, tapi risikonya tetap ada.</p>
+        </details>
+        <details>
+          <summary>Apa bedanya Mode Aman dan Mode Cepat?</summary>
+          <p>Mode Aman menambah posisi lebih pelan dan risikonya lebih kecil. Mode Cepat mengejar pemulihan lebih cepat, tapi dengan risiko yang lebih besar.</p>
+        </details>
+        <details>
+          <summary>Bagaimana cara kerja hedging-nya?</summary>
+          <p>Kalau harga bergerak melawan posisi utama, EA bisa membuka posisi lawan arah secara otomatis untuk membantu menyeimbangkan kerugian sementara.</p>
+        </details>
+        <details>
+          <summary>Apakah wajib pakai VPS?</summary>
+          <p>Sangat disarankan, supaya EA tetap jalan 24/5 walau laptop atau koneksi kamu mati.</p>
+        </details>
+        <details>
+          <summary>Bedanya versi trial dan versi penuh apa?</summary>
+          <p>Cara kerjanya sama persis. Bedanya cuma versi trial dibatasi waktu, terkunci ke satu akun, dan belum bisa pakai Mode Cepat.</p>
+        </details>
+        <details>
+          <summary>Bisa dipakai di pair selain Gold?</summary>
+          <p>Fokus pengembangan dan pengujiannya khusus di XAUUSD (Gold).</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CTA BAND ================= -->
+  <section class="cta-band" style="border-bottom:none;">
+    <div class="wrap">
+      <span class="eyebrow">Mulai</span>
+      <h2 style="margin-top:14px;">Biarkan mesin yang menghitung step-nya.</h2>
+      <p>Ajukan trial dan lihat sendiri bagaimana SMH EA mengelola martingale dan hedging di akun Anda.</p>
+      <a href="#" class="btn btn-primary">Ajukan Akses Trial</a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="#" class="logo"><span class="mark"><svg class="icon"><use href="#i-robot"/></svg></span> SMH EA</a>
+        <p>Smart Martingale Hedging — Expert Advisor MetaTrader 5 untuk XAUUSD.</p>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col">
+          <h4>Navigasi</h4>
+          <a href="#cara-kerja">Cara Kerja</a>
+          <a href="#modul">Modul</a>
+          <a href="#harga">Paket &amp; Harga</a>
+          <a href="#faq">FAQ</a>
+        </div>
+        <div class="footer-col">
+          <h4>Kontak</h4>
+          <a href="#">WhatsApp Admin</a>
+          <a href="#">Telegram</a>
+          <a href="#">Email</a>
+        </div>
+      </div>
+    </div>
+    <div class="disclaimer">
+      Trading forex dan komoditas seperti XAUUSD mengandung risiko tinggi dan dapat mengakibatkan kehilangan modal. Strategi martingale dan hedging secara khusus dapat memperbesar eksposur saat harga bergerak melawan posisi dalam waktu lama, dan berpotensi menimbulkan drawdown besar. SMH EA adalah alat bantu eksekusi berbasis aturan, bukan penasihat keuangan dan bukan jaminan profit. Kinerja masa lalu tidak mencerminkan hasil di masa depan. Gunakan manajemen risiko yang sesuai dengan profil dan toleransi Anda sendiri.
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

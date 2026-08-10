@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NavMain } from "@/components/admin/layout/nav-main";
 import { NavUser } from "@/components/admin/layout/nav-user";
@@ -9,9 +8,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboardIcon,
@@ -41,7 +38,6 @@ export function AppSidebar({
   const showTerminals = isSuperAdmin;
   const showAccounts = isSuperAdmin || isStaff;
   const showUsers = isSuperAdmin || isStaff;
-  const homeHref = showTerminals ? "/admin" : "/admin/users";
 
   const platformItems = [
     ...(showTerminals
@@ -58,7 +54,7 @@ export function AppSidebar({
     ...(showAccounts
       ? [
           {
-            title: "Account EA",
+            title: "Daftar Akun EA",
             url: "/admin/account",
             icon: <MonitorSmartphoneIcon />,
             isActive: pathname.startsWith("/admin/account"),
@@ -68,7 +64,7 @@ export function AppSidebar({
     ...(showTerminals
       ? [
           {
-            title: "Member",
+            title: "DaftarMember",
             url: "/admin/members",
             icon: <UserRoundIcon />,
             isActive: pathname.startsWith("/admin/members"),
@@ -122,19 +118,12 @@ export function AppSidebar({
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:p-1.5!"
-            >
-              <Link href={homeHref}>
-                <SmhLogo size={40} />
-                <span className="text-base font-semibold">SMH Control Panel</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="flex h-12 items-center gap-2.5 overflow-visible px-2 py-1.5">
+          <SmhLogo size={32} className="size-8 object-contain" />
+          <span className="truncate text-base font-semibold leading-none">
+            SMH Control Panel
+          </span>
+        </div>
       </SidebarHeader>
 
       <SidebarContent>
@@ -142,6 +131,7 @@ export function AppSidebar({
       </SidebarContent>
 
       <SidebarFooter>
+        <SidebarSeparator className="mx-0" />
         <NavUser
           user={{
             name: user.displayName ?? user.email,

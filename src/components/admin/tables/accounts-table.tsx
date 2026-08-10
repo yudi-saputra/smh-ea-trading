@@ -9,6 +9,7 @@ import {
   getPaginationRowModel,
   useReactTable,
   type ColumnDef,
+  type VisibilityState,
 } from "@tanstack/react-table";
 import { CopyIcon, EyeIcon, KeyRoundIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
@@ -16,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   CreateAccountForm,
+  type AccountPackageOption,
   type TraderOption,
 } from "@/components/admin/account/create-account-form";
 import { DatePicker } from "@/components/shared/date-picker";
@@ -23,15 +25,19 @@ import {
   DataTableAction,
   DataTableActionButton,
   DataTableCard,
+  DataTableColumnReset,
+  DataTableColumnToggle,
   DataTableEmpty,
   DataTablePagination,
   DataTableSearch,
+  DataTableToolbar,
   dataTableBodyClass,
   dataTableCellClass,
   dataTableHeadClass,
   dataTableHeaderClass,
   dataTableHeaderRowClass,
   dataTableRowClass,
+  useDataTableColumnVisibility,
 } from "@/components/admin/tables/data-table";
 import {
   Dialog,
@@ -53,7 +59,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -62,7 +77,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { toExpiryDateInput } from "@/lib/expiry";
+import { formatExpiryDate, expiryStatus, toExpiryDateInput } from "@/lib/expiry";
 import { cn } from "@/lib/utils";
 
 export type AccountRow = {
@@ -71,15 +86,44 @@ export type AccountRow = {
   name: string;
   online: boolean;
   eaStatus: string;
+  balance: string | null;
   apiKey: string | null;
   ownerEmail: string | null;
   ownerName: string | null;
   passwordTrading: string | null;
   serverBroker: string | null;
+  packageId: string | null;
+  packageName: string | null;
+  /** Affiliate code from member owner (Afiliator.kode). */
+  referralCode: string | null;
   expiry: string;
   expiryLabel: "none" | "active" | "expiring" | "expired";
   expiresAt: string | null;
 };
+
+/** Default visible columns (false = hidden). Override via Kolom filter; saved in localStorage. */
+const ACCOUNTS_COLUMN_VISIBILITY_KEY = "admin.accounts-table.columnVisibility.v2";
+const ACCOUNTS_COLUMN_VISIBILITY_DEFAULT: VisibilityState = {
+  member: true,
+  referralCode: false,
+  name: false,
+  terminalId: false,
+  balance: true,
+  apiKey: false,
+  expiry: true,
+  eaStatus: true,
+  online: true,
+};
+
+function formatBalance(value: string | null) {
+  if (value == null || value === "") return "0";
+  const n = Number(value);
+  if (Number.isNaN(n)) return value;
+  return n.toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+}
 
 function expiryTone(label: AccountRow["expiryLabel"]) {
   if (label === "expired") return "text-trading-loss";
@@ -98,7 +142,7 @@ function ApiKeyCell({ apiKey }: { apiKey: string | null }) {
   const [copied, setCopied] = useState(false);
 
   if (!apiKey) {
-    return <span className="text-muted-foreground">—</span>;
+    return <span className="text-muted-foreground">-</span>;
   }
 
   async function copy() {
@@ -131,6 +175,7 @@ export function AccountsTable({
   rows,
   showOwner,
   traders = [],
+  packages = [],
   canCreate = false,
   canGenerateApiKey = false,
   showApiKey = true,
@@ -140,6 +185,7 @@ export function AccountsTable({
   rows: AccountRow[];
   showOwner: boolean;
   traders?: TraderOption[];
+  packages?: AccountPackageOption[];
   canCreate?: boolean;
   canGenerateApiKey?: boolean;
   showApiKey?: boolean;
@@ -151,6 +197,11 @@ export function AccountsTable({
   const router = useRouter();
   const [data, setData] = useState(rows);
   const [filter, setFilter] = useState("");
+  const [columnVisibility, setColumnVisibility, resetColumnVisibility] =
+    useDataTableColumnVisibility(
+      ACCOUNTS_COLUMN_VISIBILITY_KEY,
+      ACCOUNTS_COLUMN_VISIBILITY_DEFAULT,
+    );
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
@@ -158,6 +209,10 @@ export function AccountsTable({
   const [viewRow, setViewRow] = useState<AccountRow | null>(null);
   const [editRow, setEditRow] = useState<AccountRow | null>(null);
   const [editLabel, setEditLabel] = useState("");
+  const [editTerminalId, setEditTerminalId] = useState("");
+  const [editPasswordTrading, setEditPasswordTrading] = useState("");
+  const [editServerBroker, setEditServerBroker] = useState("");
+  const [editPackageId, setEditPackageId] = useState("");
   const [editExpiresAt, setEditExpiresAt] = useState("");
   const [editSaving, setEditSaving] = useState(false);
   const [deleteRow, setDeleteRow] = useState<AccountRow | null>(null);
@@ -188,12 +243,20 @@ export function AccountsTable({
     setViewRow(null);
     setEditRow(row);
     setEditLabel(row.name);
+    setEditTerminalId(row.terminalId);
+    setEditPasswordTrading(row.passwordTrading ?? "");
+    setEditServerBroker(row.serverBroker ?? "");
+    setEditPackageId(row.packageId ?? "");
     setEditExpiresAt(toExpiryDateInput(row.expiresAt));
   }
 
   function closeEdit() {
     setEditRow(null);
     setEditLabel("");
+    setEditTerminalId("");
+    setEditPasswordTrading("");
+    setEditServerBroker("");
+    setEditPackageId("");
     setEditExpiresAt("");
     setEditSaving(false);
   }
@@ -206,8 +269,27 @@ export function AccountsTable({
     e.preventDefault();
     if (!editRow) return;
     const name = editLabel.trim();
+    const terminalId = editTerminalId.trim();
+    const passwordTrading = editPasswordTrading.trim();
+    const serverBroker = editServerBroker.trim();
     if (!name) {
       setError("Label wajib diisi");
+      return;
+    }
+    if (!terminalId) {
+      setError("ID Trading wajib diisi");
+      return;
+    }
+    if (!passwordTrading) {
+      setError("Password Trading wajib diisi");
+      return;
+    }
+    if (!serverBroker) {
+      setError("Server Broker wajib diisi");
+      return;
+    }
+    if (!editPackageId) {
+      setError("Paket wajib dipilih");
       return;
     }
     setError(null);
@@ -218,6 +300,10 @@ export function AccountsTable({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
+          terminalId,
+          passwordTrading,
+          serverBroker,
+          packageId: editPackageId,
           expiresAt: editExpiresAt.trim() || null,
         }),
       });
@@ -226,13 +312,36 @@ export function AccountsTable({
         setError(json.error ?? "Gagal memperbarui akun");
         return;
       }
+      const t = json.terminal as
+        | {
+            name?: string;
+            terminalId?: string;
+            expiresAt?: string | null;
+            packageId?: string | null;
+            packageName?: string | null;
+            passwordTrading?: string | null;
+            serverBroker?: string | null;
+          }
+        | undefined;
+      const expiresAt = t?.expiresAt ?? editRow.expiresAt;
+      const expiresDate = expiresAt ? new Date(expiresAt) : null;
       setData((prev) =>
         prev.map((r) =>
           r.id === editRow.id
             ? {
                 ...r,
-                name: json.terminal?.name ?? name,
-                expiresAt: json.terminal?.expiresAt ?? r.expiresAt,
+                name: t?.name ?? name,
+                terminalId: t?.terminalId ?? terminalId,
+                passwordTrading: t?.passwordTrading ?? passwordTrading,
+                serverBroker: t?.serverBroker ?? serverBroker,
+                packageId: t?.packageId ?? editPackageId,
+                packageName:
+                  t?.packageName ??
+                  packages.find((p) => p.id === editPackageId)?.name ??
+                  r.packageName,
+                expiresAt,
+                expiry: formatExpiryDate(expiresDate),
+                expiryLabel: expiryStatus(expiresDate).label,
               }
             : r,
         ),
@@ -343,18 +452,21 @@ export function AccountsTable({
           );
         },
       },
-      {
-        accessorKey: "name",
-        header: "Label",
-        cell: ({ row }) => (
-          <span className="font-medium">{row.original.name}</span>
-        ),
-      },
+      
       {
         accessorKey: "terminalId",
         header: "ID Trading",
         cell: ({ row }) => (
           <span className="text-sm">{row.original.terminalId}</span>
+        ),
+      },
+      {
+        accessorKey: "balance",
+        header: "Balance",
+        cell: ({ row }) => (
+          <span className="tabular-nums text-sm">
+            {formatBalance(row.original.balance)}
+          </span>
         ),
       },
       ...(showApiKey
@@ -384,8 +496,8 @@ export function AccountsTable({
         header: "EA Status",
         cell: ({ row }) => {
           const status = row.original.eaStatus;
-          if (!status || status === "-" || status === "—") {
-            return <span className="text-muted-foreground">—</span>;
+          if (!status || status === "-" || status === "-") {
+            return <span className="text-muted-foreground">-</span>;
           }
           return (
             <span
@@ -409,8 +521,27 @@ export function AccountsTable({
         ),
       },
       {
+        accessorKey: "referralCode",
+        header: "Kode Referral",
+        cell: ({ row }) => {
+          const code = row.original.referralCode;
+          if (!code) {
+            return <span className="text-muted-foreground">-</span>;
+          }
+          return <span className="font-mono text-xs">{code}</span>;
+        },
+      },
+      {
+        accessorKey: "name",
+        header: "Keterangan",
+        cell: ({ row }) => (
+          <span className="font-medium">{row.original.name}</span>
+        ),
+      },
+      {
         id: "actions",
         header: "Aksi",
+        enableHiding: false,
         cell: ({ row }) => {
           const r = row.original;
           const busy = busyId === r.id;
@@ -464,8 +595,9 @@ export function AccountsTable({
   const table = useReactTable({
     data,
     columns,
-    state: { globalFilter: filter },
+    state: { globalFilter: filter, columnVisibility },
     onGlobalFilterChange: setFilter,
+    onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -480,6 +612,7 @@ export function AccountsTable({
         (r.apiKey?.toLowerCase().includes(q) ?? false) ||
         (r.ownerEmail?.toLowerCase().includes(q) ?? false) ||
         (r.ownerName?.toLowerCase().includes(q) ?? false) ||
+        (r.referralCode?.toLowerCase().includes(q) ?? false) ||
         r.eaStatus.toLowerCase().includes(q) ||
         (r.online ? "online" : "offline").includes(q)
       );
@@ -492,8 +625,16 @@ export function AccountsTable({
           label: "Member",
           value: viewRow.ownerName ?? viewRow.ownerEmail ?? "—",
         },
+        {
+          label: "Kode Referral",
+          value: viewRow.referralCode || "—",
+        },
+        {
+          label: "Paket",
+          value: viewRow.packageName || "—",
+        },
         { label: "Label", value: viewRow.name },
-        { label: "Terminal ID", value: viewRow.terminalId },
+        { label: "ID Trading", value: viewRow.terminalId },
         {
           label: "Password Trading",
           value: viewRow.passwordTrading || "—",
@@ -510,6 +651,7 @@ export function AccountsTable({
           value: viewRow.online ? "Online" : "Offline",
         },
         { label: "EA Status", value: viewRow.eaStatus },
+        { label: "Balance", value: formatBalance(viewRow.balance) },
         { label: "Expired", value: viewRow.expiry },
         ...(viewRow.apiKey
           ? [{ label: "API Key", value: viewRow.apiKey }]
@@ -520,25 +662,6 @@ export function AccountsTable({
   return (
     <div className="space-y-4">
       {header}
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <DataTableSearch
-          value={filter}
-          onChange={setFilter}
-          placeholder="Cari member, label, atau Terminal ID…"
-        />
-        {canCreate ? (
-          <Button
-            type="button"
-            className="gap-2 shrink-0"
-            onClick={openCreate}
-            disabled={traders.length === 0}
-          >
-            <PlusIcon className="size-4" />
-            Tambah
-          </Button>
-        ) : null}
-      </div>
 
       {error &&
       !createOpen &&
@@ -552,7 +675,39 @@ export function AccountsTable({
         </p>
       ) : null}
 
-      <DataTableCard>
+      <DataTableCard
+        toolbar={
+          <DataTableToolbar>
+            <DataTableSearch
+              value={filter}
+              onChange={setFilter}
+              placeholder="Cari member, label, Terminal ID, atau kode referral…"
+            />
+            <div className="flex shrink-0 items-center gap-2">
+              <DataTableColumnToggle table={table} />
+              <DataTableColumnReset
+                label="Reset Filter"
+                onReset={() => {
+                  resetColumnVisibility();
+                  setFilter("");
+                }}
+              />
+              {canCreate ? (
+                <Button
+                  type="button"
+                  className="gap-2"
+                  onClick={openCreate}
+                  disabled={traders.length === 0}
+                >
+                  <PlusIcon className="size-4" />
+                  Tambah
+                </Button>
+              ) : null}
+            </div>
+          </DataTableToolbar>
+        }
+        footer={<DataTablePagination table={table} />}
+      >
         <Table>
           <TableHeader className={dataTableHeaderClass}>
             {table.getHeaderGroups().map((hg) => (
@@ -606,9 +761,6 @@ export function AccountsTable({
           </TableBody>
         </Table>
       </DataTableCard>
-
-      <DataTablePagination table={table} />
-
       {canCreate ? (
         <Dialog
           open={createOpen}
@@ -617,14 +769,19 @@ export function AccountsTable({
             else setCreateOpen(true);
           }}
         >
-          <DialogContent className="sm:max-w-[425px]">
-            <CreateAccountForm
-              key={createKey}
-              isAdmin
-              traders={traders}
-              embedded
-              onDone={closeCreate}
-            />
+          <DialogContent className="sm:max-w-2xl gap-0 overflow-hidden p-0">
+            <ScrollArea className="max-h-[90vh]">
+              <div className="p-6">
+                <CreateAccountForm
+                  key={createKey}
+                  isAdmin
+                  traders={traders}
+                  packages={packages}
+                  embedded
+                  onDone={closeCreate}
+                />
+              </div>
+            </ScrollArea>
           </DialogContent>
         </Dialog>
       ) : null}
@@ -633,7 +790,6 @@ export function AccountsTable({
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Detail Akun</DialogTitle>
-            <DialogDescription>Informasi lengkap akun trading.</DialogDescription>
           </DialogHeader>
           {viewRow ? (
             <div className="flex flex-col">
@@ -664,63 +820,139 @@ export function AccountsTable({
       </Dialog>
 
       <Dialog open={!!editRow} onOpenChange={(open) => !open && closeEdit()}>
-        <DialogContent className="sm:max-w-[425px]">
-          <form onSubmit={(e) => void saveEdit(e)} className="grid gap-4">
-            <DialogHeader>
-              <DialogTitle>Edit Akun</DialogTitle>
-              <DialogDescription>
-                Ubah label/keterangan dan tanggal expired akun.
-              </DialogDescription>
-            </DialogHeader>
-            {error ? (
-              <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {error}
-              </p>
-            ) : null}
-            <div className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-terminal-id">ID Trading</Label>
-                <Input
-                  id="edit-terminal-id"
-                  value={editRow?.terminalId ?? ""}
-                  disabled
-                  className="font-mono"
-                />
+        <DialogContent className="sm:max-w-2xl gap-0 overflow-hidden p-0">
+          <ScrollArea className="max-h-[90vh]">
+            <form
+              onSubmit={(e) => void saveEdit(e)}
+              className="grid gap-4 p-6"
+            >
+              <DialogHeader>
+                <DialogTitle>Edit Akun</DialogTitle>
+                <DialogDescription>
+                  Ubah data trading dan expired akun. Member tidak dapat diganti.
+                </DialogDescription>
+              </DialogHeader>
+              {error ? (
+                <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {error}
+                </p>
+              ) : null}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-2 sm:col-span-2">
+                  <Label htmlFor="edit-member">Member</Label>
+                  <Input
+                    id="edit-member"
+                    value={
+                      editRow?.ownerName?.trim() ||
+                      editRow?.ownerEmail ||
+                      "—"
+                    }
+                    disabled
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-package">Paket</Label>
+                  <Select
+                    value={editPackageId || undefined}
+                    onValueChange={(v) => setEditPackageId(v ?? "")}
+                    disabled={packages.length === 0}
+                  >
+                    <SelectTrigger id="edit-package" className="w-full">
+                      <SelectValue
+                        placeholder={
+                          packages.length === 0
+                            ? "Belum ada paket"
+                            : "Pilih paket"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {packages.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-label">Label / Keterangan</Label>
+                  <Input
+                    id="edit-label"
+                    value={editLabel}
+                    onChange={(e) => setEditLabel(e.target.value)}
+                    required
+                    autoComplete="off"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-terminal-id">ID Trading</Label>
+                  <Input
+                    id="edit-terminal-id"
+                    value={editTerminalId}
+                    onChange={(e) => setEditTerminalId(e.target.value)}
+                    required
+                    autoComplete="off"
+                    className="font-mono"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-password-trading">
+                    Password Trading
+                  </Label>
+                  <PasswordInput
+                    id="edit-password-trading"
+                    value={editPasswordTrading}
+                    onChange={(e) => setEditPasswordTrading(e.target.value)}
+                    required
+                    autoComplete="off"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-server-broker">Server Broker</Label>
+                  <Input
+                    id="edit-server-broker"
+                    value={editServerBroker}
+                    onChange={(e) => setEditServerBroker(e.target.value)}
+                    required
+                    autoComplete="off"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-expiresAt">Expired</Label>
+                  <DatePicker
+                    id="edit-expiresAt"
+                    value={editExpiresAt}
+                    onChange={setEditExpiresAt}
+                    placeholder="Expired"
+                  />
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-label">Label / Ket</Label>
-                <Input
-                  id="edit-label"
-                  value={editLabel}
-                  onChange={(e) => setEditLabel(e.target.value)}
-                  required
-                  autoComplete="off"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-expiresAt">Expired</Label>
-                <DatePicker
-                  id="edit-expiresAt"
-                  value={editExpiresAt}
-                  onChange={setEditExpiresAt}
-                  placeholder="Expired"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={closeEdit}
-                disabled={editSaving}
-              >
-                Batal
-              </Button>
-              <Button type="submit" disabled={editSaving}>
-                {editSaving ? "Menyimpan…" : "Simpan"}
-              </Button>
-            </DialogFooter>
-          </form>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={closeEdit}
+                  disabled={editSaving}
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={
+                    editSaving ||
+                    !editLabel.trim() ||
+                    !editTerminalId.trim() ||
+                    !editPasswordTrading.trim() ||
+                    !editServerBroker.trim() ||
+                    !editPackageId
+                  }
+                >
+                  {editSaving ? "Menyimpan…" : "Simpan"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
 

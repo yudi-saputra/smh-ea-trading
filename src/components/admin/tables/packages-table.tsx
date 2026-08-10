@@ -19,6 +19,7 @@ import {
   DataTableEmpty,
   DataTablePagination,
   DataTableSearch,
+  DataTableToolbar,
   dataTableBodyClass,
   dataTableCellClass,
   dataTableHeadClass,
@@ -323,19 +324,22 @@ export function PackagesTable({
     <div className="space-y-4">
       {header}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <DataTableSearch
-          value={filter}
-          onChange={setFilter}
-          placeholder="Cari berdasarkan nama atau keterangan…"
-        />
-        <Button onClick={openCreate} className="gap-2 shrink-0">
-          <PlusIcon className="size-4" />
-          Tambah
-        </Button>
-      </div>
-
-      <DataTableCard>
+      <DataTableCard
+        toolbar={
+          <DataTableToolbar>
+            <DataTableSearch
+              value={filter}
+              onChange={setFilter}
+              placeholder="Cari berdasarkan nama atau keterangan…"
+            />
+            <Button onClick={openCreate} className="gap-2 shrink-0">
+              <PlusIcon className="size-4" />
+              Tambah
+            </Button>
+          </DataTableToolbar>
+        }
+        footer={<DataTablePagination table={table} />}
+      >
         <Table>
           <TableHeader className={dataTableHeaderClass}>
             {table.getHeaderGroups().map((hg) => (
@@ -383,8 +387,6 @@ export function PackagesTable({
           </TableBody>
         </Table>
       </DataTableCard>
-
-      <DataTablePagination table={table} />
 
       <Dialog open={createOpen} onOpenChange={(open) => !open && closeDialogs()}>
         <DialogContent className="sm:max-w-[425px]">

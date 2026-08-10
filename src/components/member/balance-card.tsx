@@ -43,6 +43,12 @@ export function BalanceCard({
         ? "text-trading-profit"
         : "text-trading-loss";
 
+  // ponytail: flat/null → up mascot; only negative growth flips to down
+  const mascotSrc =
+    growthPct != null && !Number.isNaN(growthPct) && growthPct < 0
+      ? "/maskot_smh_02.png"
+      : "/maskot_smh_01.png";
+
   return (
     <div
       className={cn(
@@ -69,7 +75,7 @@ export function BalanceCard({
         aria-hidden
       >
         <Image
-          src="/gold_dollar.png"
+          src={mascotSrc}
           alt=""
           fill
           sizes="(max-width: 640px) 40vw, 208px"

@@ -18,6 +18,7 @@ import {
   DataTableEmpty,
   DataTablePagination,
   DataTableSearch,
+  DataTableToolbar,
   dataTableBodyClass,
   dataTableCellClass,
   dataTableHeadClass,
@@ -512,22 +513,6 @@ export function MembersTable({
     <div className="space-y-4">
       {header}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <DataTableSearch
-          value={filter}
-          onChange={setFilter}
-          placeholder="Cari nama, email, paket, ID trading…"
-        />
-        <Button
-          onClick={openCreate}
-          className="gap-2 shrink-0"
-          disabled={packages.length === 0}
-        >
-          <PlusIcon className="size-4" />
-          Tambah
-        </Button>
-      </div>
-
       {error &&
       !createOpen &&
       editRow === null &&
@@ -538,7 +523,26 @@ export function MembersTable({
         </p>
       ) : null}
 
-      <DataTableCard>
+      <DataTableCard
+        toolbar={
+          <DataTableToolbar>
+            <DataTableSearch
+              value={filter}
+              onChange={setFilter}
+              placeholder="Cari nama, email, paket, ID trading…"
+            />
+            <Button
+              onClick={openCreate}
+              className="gap-2 shrink-0"
+              disabled={packages.length === 0}
+            >
+              <PlusIcon className="size-4" />
+              Tambah
+            </Button>
+          </DataTableToolbar>
+        }
+        footer={<DataTablePagination table={table} />}
+      >
         <Table>
           <TableHeader className={dataTableHeaderClass}>
             {table.getHeaderGroups().map((hg) => (
@@ -594,8 +598,6 @@ export function MembersTable({
           </TableBody>
         </Table>
       </DataTableCard>
-
-      <DataTablePagination table={table} />
 
       <Dialog open={createOpen} onOpenChange={(open) => !open && closeDialogs()}>
         <DialogContent className="sm:max-w-2xl gap-0 overflow-hidden p-0">

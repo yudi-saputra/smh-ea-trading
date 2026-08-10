@@ -1,16 +1,26 @@
 "use client";
 
 import * as React from "react";
-import type { Table } from "@tanstack/react-table";
+import type { Table, VisibilityState } from "@tanstack/react-table";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
   ChevronsLeftIcon,
   ChevronsRightIcon,
+  Columns3Icon,
+  RotateCcwIcon,
   SearchIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -18,29 +28,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  TableCell,
-  TableRow,
-} from "@/components/ui/table";
+import { TableCell, TableRow } from "@/components/ui/table";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Empty } from "@/components/ui/empty";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 export const dataTableHeadClass =
   "h-11 px-4 text-sm font-medium text-foreground";
 export const dataTableHeaderClass = "sticky top-0 z-10 bg-muted";
-export const dataTableHeaderRowClass =
-  "border-border/40 hover:bg-transparent";
+export const dataTableHeaderRowClass = "border-border/40 hover:bg-transparent";
 export const dataTableCellClass = "px-4 py-3 text-sm";
-export const dataTableRowClass = "border-border/40 hover:bg-muted/30";
-export const dataTableBodyClass = "bg-background";
-/** Max height for table scroll area inside DataTableCard. */
-export const dataTableScrollClass = "max-h-[min(60vh,36rem)] w-full";
+export const dataTableRowClass = "border-border/40 hover:bg-background/50";
+export const dataTableBodyClass = "bg-sidebar";
+/** Horizontal overflow only — table height follows pageSize (no inner height clip). */
+export const dataTableScrollClass = "w-full overflow-x-auto";
 
 export function DataTableSearch({
   value,
@@ -66,35 +71,193 @@ export function DataTableSearch({
   );
 }
 
-export function DataTableCard({
+/** Flex row for search + actions inside DataTableCard toolbar. */
+export function DataTableToolbar({
   className,
-  scrollClassName,
   children,
 }: {
   className?: string;
-  /** Override default scroll max-height; pass `false` to disable ScrollArea. */
-  scrollClassName?: string | false;
   children: React.ReactNode;
 }) {
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-lg border bg-card",
+        "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between",
         className,
       )}
     >
-      {scrollClassName === false ? (
-        children
-      ) : (
-        <ScrollArea className={cn(dataTableScrollClass, scrollClassName)}>
-          {children}
-        </ScrollArea>
-      )}
+      {children}
     </div>
   );
 }
 
-/** Empty state row inside DataTableCard — pakai `Empty` dari ui/empty. */
+/** Checkbox menu to show/hide hideable columns. */
+export function DataTableColumnToggle<TData>({
+  table,
+  className,
+  label = "Filter",
+}: {
+  table: Table<TData>;
+  className?: string;
+  label?: string;
+}) {
+  const columns = table
+    .getAllColumns()
+    .filter((column) => column.getCanHide());
+
+  if (columns.length === 0) return null;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className={cn("h-9 gap-2 shrink-0", className)}
+        >
+          <Columns3Icon className="size-4" />
+          {label}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuLabel>Tampilkan kolom</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {columns.map((column) => {
+          const header = column.columnDef.header;
+          const title =
+            typeof header === "string" ? header : column.id;
+          return (
+            <DropdownMenuCheckboxItem
+              key={column.id}
+              checked={column.getIsVisible()}
+              onCheckedChange={(value) => column.toggleVisibility(!!value)}
+              onSelect={(e) => e.preventDefault()}
+            >
+              {title}
+            </DropdownMenuCheckboxItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** Icon button + tooltip to restore default column visibility. */
+export function DataTableColumnReset({
+  onReset,
+  disabled,
+  className,
+  label = "Reset Filter",
+}: {
+  onReset: () => void;
+  disabled?: boolean;
+  className?: string;
+  label?: string;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className={cn("size-9 shrink-0", className)}
+          onClick={onReset}
+          disabled={disabled}
+          aria-label={label}
+        >
+          <RotateCcwIcon className="size-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="top">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/**
+ * Column visibility with app defaults + localStorage (survives reload).
+ * Keys true = visible, false = hidden. Omitted keys default to visible in TanStack.
+ */
+export function useDataTableColumnVisibility(
+  storageKey: string,
+  defaults: VisibilityState = {},
+) {
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>(defaults);
+  const [ready, setReady] = React.useState(false);
+  const defaultsRef = React.useRef(defaults);
+  defaultsRef.current = defaults;
+
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw) as VisibilityState;
+        if (parsed && typeof parsed === "object") {
+          setColumnVisibility({ ...defaultsRef.current, ...parsed });
+        }
+      }
+    } catch {
+      // ignore corrupt storage
+    }
+    setReady(true);
+  }, [storageKey]);
+
+  React.useEffect(() => {
+    if (!ready) return;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(columnVisibility));
+    } catch {
+      // ignore quota / private mode
+    }
+  }, [columnVisibility, ready, storageKey]);
+
+  const resetColumnVisibility = React.useCallback(() => {
+    setColumnVisibility({ ...defaultsRef.current });
+  }, []);
+
+  return [columnVisibility, setColumnVisibility, resetColumnVisibility] as const;
+}
+
+export function DataTableCard({
+  className,
+  scrollClassName,
+  toolbar,
+  footer,
+  children,
+}: {
+  className?: string;
+  /** false = no wrapper; string adds overflow classes (default: horizontal only). */
+  scrollClassName?: string | false;
+  toolbar?: React.ReactNode;
+  footer?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border bg-sidebar",
+        className,
+      )}
+    >
+      {toolbar ? (
+        <div className="border-b border-border/40 px-3 py-3">{toolbar}</div>
+      ) : null}
+      {scrollClassName === false ? (
+        children
+      ) : (
+        <div className={cn(dataTableScrollClass, scrollClassName)}>
+          {children}
+        </div>
+      )}
+      {footer ? (
+        <div className="border-t border-border/40 px-3 py-2.5">{footer}</div>
+      ) : null}
+    </div>
+  );
+}
+
 export function DataTableEmpty({
   colSpan,
   title,
@@ -127,7 +290,7 @@ export function DataTablePagination<TData>({ table }: { table: Table<TData> }) {
   const selected = table.getFilteredSelectedRowModel().rows.length;
 
   return (
-    <div className="flex items-center justify-between gap-4 px-1">
+    <div className="flex items-center justify-between gap-4">
       <div className="hidden flex-1 text-sm text-muted-foreground lg:flex">
         {selected} of {total} row(s) selected.
       </div>
@@ -140,7 +303,7 @@ export function DataTablePagination<TData>({ table }: { table: Table<TData> }) {
             value={String(pageSize)}
             onValueChange={(value) => table.setPageSize(Number(value))}
           >
-            <SelectTrigger size="sm" className="h-8 w-[4.5rem]">
+            <SelectTrigger size="sm" className="h-8 w-[4.5rem] bg-background">
               <SelectValue />
             </SelectTrigger>
             <SelectContent side="top">
@@ -159,7 +322,7 @@ export function DataTablePagination<TData>({ table }: { table: Table<TData> }) {
           <Button
             variant="outline"
             size="icon"
-            className="hidden size-8 lg:flex"
+            className="hidden size-8 bg-background lg:flex"
             onClick={() => table.setPageIndex(0)}
             disabled={!table.getCanPreviousPage()}
             aria-label="First page"
@@ -169,7 +332,7 @@ export function DataTablePagination<TData>({ table }: { table: Table<TData> }) {
           <Button
             variant="outline"
             size="icon"
-            className="size-8"
+            className="size-8 bg-background"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
             aria-label="Previous page"
@@ -179,7 +342,7 @@ export function DataTablePagination<TData>({ table }: { table: Table<TData> }) {
           <Button
             variant="outline"
             size="icon"
-            className="size-8"
+            className="size-8 bg-background"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
             aria-label="Next page"
@@ -189,7 +352,7 @@ export function DataTablePagination<TData>({ table }: { table: Table<TData> }) {
           <Button
             variant="outline"
             size="icon"
-            className="hidden size-8 lg:flex"
+            className="hidden size-8 bg-background lg:flex"
             onClick={() => table.setPageIndex(pageCount - 1)}
             disabled={!table.getCanNextPage()}
             aria-label="Last page"
@@ -208,7 +371,10 @@ export const DataTableActionButton = React.forwardRef<
     label: string;
     children: React.ReactNode;
   } & React.ComponentProps<typeof Button>
->(function DataTableActionButton({ label, children, className, ...props }, ref) {
+>(function DataTableActionButton(
+  { label, children, className, ...props },
+  ref,
+) {
   return (
     <Button
       ref={ref}
@@ -224,7 +390,6 @@ export const DataTableActionButton = React.forwardRef<
   );
 });
 
-/** Icon action with tooltip — use for action groups (View / Edit / Hapus). */
 export function DataTableAction({
   label,
   children,

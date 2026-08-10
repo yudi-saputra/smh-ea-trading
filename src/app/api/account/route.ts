@@ -1,4 +1,4 @@
-import { MemberStatus } from "@prisma/client";
+import { MemberStatus, PackageStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import {
   AuthError,
@@ -128,6 +128,9 @@ export async function POST(req: Request) {
       terminalId?: string;
       name?: string;
       expiresAt?: string | null;
+      packageId?: string;
+      passwordTrading?: string;
+      serverBroker?: string;
     };
 
     const ownerMemberId = body.ownerMemberId?.trim();
@@ -148,6 +151,29 @@ export async function POST(req: Request) {
     }
     if (!TERMINAL_ID_RE.test(terminalId)) {
       return jsonError("Terminal ID harus berupa [A-Za-z0-9_-]", 400);
+    }
+
+    const passwordTrading =
+      body.passwordTrading?.trim() || owner.passwordTrading.trim();
+    if (!passwordTrading) {
+      return jsonError("Password Trading wajib diisi", 400);
+    }
+    const serverBroker =
+      body.serverBroker?.trim() || owner.serverBroker.trim();
+    if (!serverBroker) {
+      return jsonError("Server Broker wajib diisi", 400);
+    }
+
+    const packageId = body.packageId?.trim() || owner.packageId;
+    if (!packageId) {
+      return jsonError("Paket wajib dipilih", 400);
+    }
+    const pkg = await prisma.package.findFirst({
+      where: { id: packageId, status: PackageStatus.ACTIVE },
+      select: { id: true },
+    });
+    if (!pkg) {
+      return jsonError("Paket tidak valid atau nonaktif", 400);
     }
 
     const name =
@@ -171,6 +197,9 @@ export async function POST(req: Request) {
         apiKeyHash: hashApiKey(apiKey),
         apiKeyEnc: encryptApiKey(apiKey),
         ownerMemberId: owner.id,
+        packageId: pkg.id,
+        passwordTrading,
+        serverBroker,
         createdById: user.id,
         expiresAt: expiresParsed.date,
       },

@@ -7,9 +7,15 @@ import {
   getTerminalForUser,
   requireUser,
 } from "@/lib/auth";
-import { encryptApiKey, generateApiKey, hashApiKey } from "@/lib/crypto";
+import {
+  TERMINAL_ID_RE,
+  encryptApiKey,
+  generateApiKey,
+  hashApiKey,
+} from "@/lib/crypto";
 import { parseExpiresAt } from "@/lib/expiry";
 import { handleRouteError, jsonError, jsonOk } from "@/lib/api";
+import { PackageStatus } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -40,6 +46,9 @@ export async function GET(_req: Request, { params }: Params) {
         enabled: terminal.enabled,
         expiresAt: terminal.expiresAt?.toISOString() ?? null,
         lastSeenAt: terminal.lastSeenAt,
+        packageId: terminal.packageId,
+        passwordTrading: terminal.passwordTrading,
+        serverBroker: terminal.serverBroker,
         owner: terminal.owner,
         snapshot: terminal.snapshot
           ? {
@@ -78,6 +87,10 @@ export async function PATCH(req: Request, { params }: Params) {
       enabled?: boolean;
       rotateApiKey?: boolean;
       expiresAt?: string | null;
+      terminalId?: string;
+      packageId?: string | null;
+      passwordTrading?: string | null;
+      serverBroker?: string | null;
     };
 
     const data: {
@@ -86,11 +99,64 @@ export async function PATCH(req: Request, { params }: Params) {
       apiKeyHash?: string;
       apiKeyEnc?: string;
       expiresAt?: Date | null;
+      terminalId?: string;
+      packageId?: string | null;
+      passwordTrading?: string | null;
+      serverBroker?: string | null;
     } = {};
+
     if (typeof body.name === "string" && body.name.trim()) {
       data.name = body.name.trim();
     }
     if (typeof body.enabled === "boolean") data.enabled = body.enabled;
+
+    if (typeof body.terminalId === "string") {
+      const tid = body.terminalId.trim();
+      if (!tid) return jsonError("ID Trading wajib diisi", 400);
+      if (!TERMINAL_ID_RE.test(tid)) {
+        return jsonError("Terminal ID harus berupa [A-Za-z0-9_-]", 400);
+      }
+      if (tid !== terminal.terminalId) {
+        const exists = await prisma.terminal.findUnique({
+          where: { terminalId: tid },
+          select: { id: true },
+        });
+        if (exists) {
+          return jsonError("Terminal ID sudah dipakai akun lain", 409);
+        }
+        data.terminalId = tid;
+      }
+    }
+
+    if (body.packageId !== undefined) {
+      const packageId = body.packageId?.trim() || null;
+      if (packageId) {
+        const pkg = await prisma.package.findFirst({
+          where: { id: packageId, status: PackageStatus.ACTIVE },
+          select: { id: true },
+        });
+        if (!pkg) return jsonError("Paket tidak valid atau nonaktif", 400);
+        data.packageId = pkg.id;
+      } else {
+        data.packageId = null;
+      }
+    }
+
+    if (body.passwordTrading !== undefined) {
+      const passwordTrading = body.passwordTrading?.trim() || null;
+      if (!passwordTrading) {
+        return jsonError("Password Trading wajib diisi", 400);
+      }
+      data.passwordTrading = passwordTrading;
+    }
+
+    if (body.serverBroker !== undefined) {
+      const serverBroker = body.serverBroker?.trim() || null;
+      if (!serverBroker) {
+        return jsonError("Server Broker wajib diisi", 400);
+      }
+      data.serverBroker = serverBroker;
+    }
 
     if ("expiresAt" in body) {
       if (!canSetTerminalExpiry(user.role)) {
@@ -111,6 +177,9 @@ export async function PATCH(req: Request, { params }: Params) {
     const updated = await prisma.terminal.update({
       where: { id: terminal.id },
       data,
+      include: {
+        eaPackage: { select: { name: true } },
+      },
     });
 
     if ("expiresAt" in body) {
@@ -135,6 +204,10 @@ export async function PATCH(req: Request, { params }: Params) {
         name: updated.name,
         enabled: updated.enabled,
         expiresAt: updated.expiresAt?.toISOString() ?? null,
+        packageId: updated.packageId,
+        packageName: updated.eaPackage?.name ?? null,
+        passwordTrading: updated.passwordTrading,
+        serverBroker: updated.serverBroker,
       },
       ...(apiKey ? { apiKey } : {}),
     });

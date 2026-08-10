@@ -19,6 +19,7 @@ import {
   DataTableEmpty,
   DataTablePagination,
   DataTableSearch,
+  DataTableToolbar,
   dataTableBodyClass,
   dataTableCellClass,
   dataTableHeadClass,
@@ -418,8 +419,7 @@ export function UsersTable({
         cell: ({ row }) => {
           const u = row.original;
           const busy = busyId === u.id;
-          const canDelete =
-            canDeleteUsers && u.id !== currentUserId;
+          const canDelete = canDeleteUsers && u.id !== currentUserId;
           return (
             <div className="flex justify-end gap-1">
               <DataTableAction
@@ -482,21 +482,24 @@ export function UsersTable({
     <div className="space-y-4">
       {header}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <DataTableSearch
-          value={filter}
-          onChange={setFilter}
-          placeholder="Cari berdasarkan nama, email, atau role…"
-        />
-        {allowCreateAdmin ? (
-          <Button onClick={openCreate} className="gap-2 shrink-0">
-            <PlusIcon className="size-4" />
-            Tambah
-          </Button>
-        ) : null}
-      </div>
-
-      <DataTableCard>
+      <DataTableCard
+        toolbar={
+          <DataTableToolbar>
+            <DataTableSearch
+              value={filter}
+              onChange={setFilter}
+              placeholder="Cari berdasarkan nama, email, atau role…"
+            />
+            {allowCreateAdmin ? (
+              <Button onClick={openCreate} className="gap-2 shrink-0">
+                <PlusIcon className="size-4" />
+                Tambah
+              </Button>
+            ) : null}
+          </DataTableToolbar>
+        }
+        footer={<DataTablePagination table={table} />}
+      >
         <Table>
           <TableHeader className={dataTableHeaderClass}>
             {table.getHeaderGroups().map((hg) => (
@@ -549,9 +552,10 @@ export function UsersTable({
         </Table>
       </DataTableCard>
 
-      <DataTablePagination table={table} />
-
-      <Dialog open={createOpen} onOpenChange={(open) => !open && closeDialogs()}>
+      <Dialog
+        open={createOpen}
+        onOpenChange={(open) => !open && closeDialogs()}
+      >
         <DialogContent className="sm:max-w-[425px]">
           <form onSubmit={(e) => void handleCreate(e)} className="grid gap-4">
             <DialogHeader>
@@ -595,9 +599,6 @@ export function UsersTable({
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Detail Pengguna</DialogTitle>
-            <DialogDescription>
-              Informasi akun pengguna.
-            </DialogDescription>
           </DialogHeader>
           {viewUser ? (
             <div className="flex flex-col">
@@ -610,8 +611,7 @@ export function UsersTable({
                 { label: "Role", value: formatRoleLabel(viewUser.role) },
                 {
                   label: "Status",
-                  value:
-                    viewUser.status === "ACTIVE" ? "Active" : "Disabled",
+                  value: viewUser.status === "ACTIVE" ? "Active" : "Disabled",
                 },
                 {
                   label: "Dibuat",
@@ -655,10 +655,7 @@ export function UsersTable({
         <DialogContent className="sm:max-w-[425px]">
           <form onSubmit={(e) => void handleEdit(e)} className="grid gap-4">
             <DialogHeader>
-              <DialogTitle>Edit pengguna</DialogTitle>
-              <DialogDescription>
-                Ubah data di sini. Klik simpan jika sudah selesai.
-              </DialogDescription>
+              <DialogTitle>Edit Pengguna</DialogTitle>
             </DialogHeader>
             {error ? (
               <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -681,7 +678,7 @@ export function UsersTable({
                 Batal
               </Button>
               <Button type="submit" disabled={saving}>
-                {saving ? "Menyimpan…" : "Simpan perubahan"}
+                {saving ? "Menyimpan…" : "Simpan"}
               </Button>
             </DialogFooter>
           </form>
@@ -694,7 +691,7 @@ export function UsersTable({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus pengguna?</AlertDialogTitle>
+            <AlertDialogTitle>Hapus Pengguna?</AlertDialogTitle>
             <AlertDialogDescription>
               Akun{" "}
               <span className="font-medium text-foreground">

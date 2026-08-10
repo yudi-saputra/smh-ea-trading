@@ -3,7 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 
 /** Bump when Prisma schema changes so next-dev HMR does not keep a stale client. */
-const PRISMA_CLIENT_REV = 11;
+const PRISMA_CLIENT_REV = 13;
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
