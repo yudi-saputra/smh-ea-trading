@@ -14,5 +14,9 @@ export async function authenticateTerminal(
   });
   if (!terminal || !terminal.enabled) return null;
   if (terminal.apiKeyHash !== hashApiKey(apiKey)) return null;
+  // null expiresAt = no licence end; past expiresAt must not poll/heartbeat
+  if (terminal.expiresAt && terminal.expiresAt.getTime() < Date.now()) {
+    return null;
+  }
   return terminal;
 }

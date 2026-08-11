@@ -15,6 +15,10 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { SmhLogo } from "@/components/shared/smh-logo";
+import {
+  TurnstileField,
+  resetTurnstile,
+} from "@/components/auth/turnstile-field";
 
 function adminHomePath(role: string | undefined) {
   if (role === "STAFF") return "/admin/users";
@@ -24,19 +28,29 @@ function adminHomePath(role: string | undefined) {
 export function AuthLoginForm({
   className,
   variant = "member",
+  turnstileSiteKey,
   ...props
 }: React.ComponentProps<"div"> & {
   variant?: "member" | "admin";
+  turnstileSiteKey?: string | null;
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const isAdmin = variant === "admin";
+  const needCaptcha = Boolean(turnstileSiteKey);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (needCaptcha && !turnstileToken) {
+      setError("Lengkapi verifikasi keamanan terlebih dahulu");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch(
@@ -45,12 +59,14 @@ export function AuthLoginForm({
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email, password, turnstileToken }),
         },
       );
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Login failed");
+        setTurnstileToken(null);
+        resetTurnstile();
         return;
       }
       window.location.assign(
@@ -58,6 +74,8 @@ export function AuthLoginForm({
       );
     } catch {
       setError("Network error");
+      setTurnstileToken(null);
+      resetTurnstile();
     } finally {
       setLoading(false);
     }
@@ -120,10 +138,17 @@ export function AuthLoginForm({
                 />
               </Field>
 
+              {turnstileSiteKey ? (
+                <TurnstileField
+                  siteKey={turnstileSiteKey}
+                  onToken={setTurnstileToken}
+                />
+              ) : null}
+
               <Field>
                 <Button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || (needCaptcha && !turnstileToken)}
                   className="type-title mt-2 h-12 w-full rounded-lg"
                 >
                   {loading ? "Loading…" : "Sign in"}

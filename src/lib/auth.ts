@@ -220,9 +220,10 @@ export function homePathForRole(role: Role) {
   return "/admin";
 }
 
-/** Terminal query scope for admin list. */
+/** Terminal list scope: Super Admin + Staff see all; others match nothing. */
 export function terminalOwnerFilter(user: SessionUser) {
-  if (user.role === Role.SUPER_ADMIN || user.role === Role.STAFF) return {};
+  if (canViewAccounts(user.role)) return {};
+  // Impossible id — never leak rows if a non-viewer calls list by mistake.
   return { id: "__none__" };
 }
 
@@ -237,7 +238,33 @@ export async function getTerminalForUser(
       OR: [{ id: idOrTerminalId }, { terminalId: idOrTerminalId }],
     },
     include: {
-      snapshot: true,
+      // no rawJson — avoid shipping heartbeat dump to admin UI/API by default
+      snapshot: {
+        select: {
+          status: true,
+          account: true,
+          symbol: true,
+          balance: true,
+          equity: true,
+          positions: true,
+          buy: true,
+          sell: true,
+          floatPnl: true,
+          dailyPnl: true,
+          layer: true,
+          multiplier: true,
+          target: true,
+          cutloss: true,
+          mode: true,
+          entryMode: true,
+          maxLot: true,
+          maxLayer: true,
+          tradeTime: true,
+          tradeStartMin: true,
+          tradeEndMin: true,
+          updatedAt: true,
+        },
+      },
       owner: {
         select: { id: true, email: true, displayName: true, role: true },
       },

@@ -1,14 +1,15 @@
 import { MemberStatus, PackageStatus, AffiliateStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/crypto";
-import { handleRouteError, jsonError, jsonOk } from "@/lib/api";
+import { handleRouteError, jsonError, jsonOk, parseJsonBody } from "@/lib/api";
 import { clientIpFromRequest } from "@/lib/session-meta";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { normalizeAffiliateCode } from "@/lib/affiliates";
+import { parsePasswordTrading } from "@/lib/password-trading";
 
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as {
+    const parsed = await parseJsonBody<{
       packageId?: string;
       name?: string;
       email?: string;
@@ -18,19 +19,30 @@ export async function POST(req: Request) {
       serverBroker?: string;
       referralCode?: string;
       turnstileToken?: string;
-    };
+    }>(req);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
 
-    const packageId = body.packageId?.trim();
-    const name = body.name?.trim();
-    const email = body.email?.trim().toLowerCase();
-    const password = body.password?.trim();
-    const idTrading = body.idTrading?.trim();
-    const passwordTrading = body.passwordTrading?.trim();
-    const serverBroker = body.serverBroker?.trim();
-    const referralCode = normalizeAffiliateCode(body.referralCode ?? "");
+    const packageId =
+      typeof body.packageId === "string" ? body.packageId.trim() : "";
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    const email =
+      typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    const password =
+      typeof body.password === "string" ? body.password.trim() : "";
+    const idTrading =
+      typeof body.idTrading === "string" ? body.idTrading.trim() : "";
+    const pwTrading = parsePasswordTrading(
+      typeof body.passwordTrading === "string" ? body.passwordTrading : "",
+    );
+    const serverBroker =
+      typeof body.serverBroker === "string" ? body.serverBroker.trim() : "";
+    const referralCode = normalizeAffiliateCode(
+      typeof body.referralCode === "string" ? body.referralCode : "",
+    );
 
     const captcha = await verifyTurnstileToken(
-      body.turnstileToken,
+      typeof body.turnstileToken === "string" ? body.turnstileToken : undefined,
       clientIpFromRequest(req),
     );
     if (!captcha.ok) return jsonError(captcha.error, 400);
@@ -43,8 +55,9 @@ export async function POST(req: Request) {
       return jsonError("Password minimal 6 karakter", 400);
     }
     if (!idTrading) return jsonError("ID Trading wajib diisi", 400);
-    if (!passwordTrading) return jsonError("Password Trading wajib diisi", 400);
+    if (!pwTrading.ok) return jsonError(pwTrading.error, 400);
     if (!serverBroker) return jsonError("Server Trading wajib diisi", 400);
+    const passwordTrading = pwTrading.value;
 
     const pkg = await prisma.package.findFirst({
       where: { id: packageId, status: PackageStatus.ACTIVE },

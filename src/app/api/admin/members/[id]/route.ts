@@ -1,9 +1,10 @@
 import { Role, MemberStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { AuthError, requireUser } from "@/lib/auth";
-import { handleRouteError, jsonError, jsonOk } from "@/lib/api";
+import { handleRouteError, jsonError, jsonOk, parseJsonBody } from "@/lib/api";
 import { parseMemberStatus } from "@/lib/members";
 import { hashPassword } from "@/lib/crypto";
+import { parsePasswordTrading } from "@/lib/password-trading";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -30,7 +31,7 @@ export async function PATCH(req: Request, { params }: Params) {
     const existing = await prisma.member.findUnique({ where: { id } });
     if (!existing) return jsonError("Member tidak ditemukan", 404);
 
-    const body = (await req.json()) as {
+    const parsed = await parseJsonBody<{
       packageId?: string;
       name?: string;
       email?: string;
@@ -39,7 +40,9 @@ export async function PATCH(req: Request, { params }: Params) {
       passwordTrading?: string;
       serverBroker?: string;
       status?: MemberStatus;
-    };
+    }>(req);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
 
     const data: {
       packageId?: string;
@@ -53,7 +56,8 @@ export async function PATCH(req: Request, { params }: Params) {
     } = {};
 
     if (body.packageId !== undefined) {
-      const packageId = body.packageId.trim();
+      const packageId =
+        typeof body.packageId === "string" ? body.packageId.trim() : "";
       if (!packageId) return jsonError("Paket wajib dipilih", 400);
       const pkg = await prisma.package.findUnique({ where: { id: packageId } });
       if (!pkg) return jsonError("Paket tidak ditemukan", 400);
@@ -61,35 +65,46 @@ export async function PATCH(req: Request, { params }: Params) {
     }
 
     if (body.name !== undefined) {
-      const name = body.name.trim();
+      const name = typeof body.name === "string" ? body.name.trim() : "";
       if (!name) return jsonError("Nama wajib diisi", 400);
       data.name = name;
     }
 
     if (body.email !== undefined) {
-      const email = body.email.trim().toLowerCase();
+      const email =
+        typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
       if (!email) return jsonError("Email wajib diisi", 400);
       data.email = email;
     }
 
     if (body.password !== undefined) {
-      const password = body.password.trim();
+      const password =
+        typeof body.password === "string" ? body.password.trim() : "";
       if (password) data.password = await hashPassword(password);
     }
 
     if (body.idTrading !== undefined) {
-      const idTrading = body.idTrading.trim();
+      const idTrading =
+        typeof body.idTrading === "string" ? body.idTrading.trim() : "";
       if (!idTrading) return jsonError("ID Trading wajib diisi", 400);
       data.idTrading = idTrading;
     }
 
     if (body.passwordTrading !== undefined) {
-      const passwordTrading = body.passwordTrading.trim();
-      if (passwordTrading) data.passwordTrading = passwordTrading;
+      // empty string = leave unchanged (edit form pattern)
+      if (
+        typeof body.passwordTrading === "string" &&
+        body.passwordTrading.trim()
+      ) {
+        const pw = parsePasswordTrading(body.passwordTrading);
+        if (!pw.ok) return jsonError(pw.error, 400);
+        data.passwordTrading = pw.value;
+      }
     }
 
     if (body.serverBroker !== undefined) {
-      const serverBroker = body.serverBroker.trim();
+      const serverBroker =
+        typeof body.serverBroker === "string" ? body.serverBroker.trim() : "";
       if (!serverBroker) return jsonError("Server Broker wajib diisi", 400);
       data.serverBroker = serverBroker;
     }

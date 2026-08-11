@@ -14,7 +14,9 @@ import {
   hashApiKey,
 } from "@/lib/crypto";
 import { parseExpiresAt } from "@/lib/expiry";
-import { handleRouteError, jsonError, jsonOk } from "@/lib/api";
+import { handleRouteError, jsonError, jsonOk, parseJsonBody } from "@/lib/api";
+import { parsePasswordTrading } from "@/lib/password-trading";
+import { mapSnapshotDetail } from "@/lib/terminal-dto";
 import { PackageStatus } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
@@ -50,21 +52,8 @@ export async function GET(_req: Request, { params }: Params) {
         passwordTrading: terminal.passwordTrading,
         serverBroker: terminal.serverBroker,
         owner: terminal.owner,
-        snapshot: terminal.snapshot
-          ? {
-              ...terminal.snapshot,
-              account: terminal.snapshot.account?.toString() ?? null,
-              balance: terminal.snapshot.balance?.toString() ?? null,
-              equity: terminal.snapshot.equity?.toString() ?? null,
-              floatPnl: terminal.snapshot.floatPnl?.toString() ?? null,
-              dailyPnl: terminal.snapshot.dailyPnl?.toString() ?? null,
-              layer: terminal.snapshot.layer?.toString() ?? null,
-              multiplier: terminal.snapshot.multiplier?.toString() ?? null,
-              target: terminal.snapshot.target?.toString() ?? null,
-              cutloss: terminal.snapshot.cutloss?.toString() ?? null,
-              maxLot: terminal.snapshot.maxLot?.toString() ?? null,
-            }
-          : null,
+        memberOwner: terminal.memberOwner,
+        snapshot: mapSnapshotDetail(terminal.snapshot),
       },
       commands: recentCommands,
     });
@@ -82,7 +71,7 @@ export async function PATCH(req: Request, { params }: Params) {
     const terminal = await getTerminalForUser(user, id);
     if (!terminal) return jsonError("Terminal not found", 404);
 
-    const body = (await req.json()) as {
+    const parsed = await parseJsonBody<{
       name?: string;
       enabled?: boolean;
       rotateApiKey?: boolean;
@@ -91,7 +80,9 @@ export async function PATCH(req: Request, { params }: Params) {
       packageId?: string | null;
       passwordTrading?: string | null;
       serverBroker?: string | null;
-    };
+    }>(req);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
 
     const data: {
       name?: string;
@@ -104,11 +95,16 @@ export async function PATCH(req: Request, { params }: Params) {
       passwordTrading?: string | null;
       serverBroker?: string | null;
     } = {};
+    const auditFields: string[] = [];
 
     if (typeof body.name === "string" && body.name.trim()) {
       data.name = body.name.trim();
+      auditFields.push("name");
     }
-    if (typeof body.enabled === "boolean") data.enabled = body.enabled;
+    if (typeof body.enabled === "boolean") {
+      data.enabled = body.enabled;
+      auditFields.push("enabled");
+    }
 
     if (typeof body.terminalId === "string") {
       const tid = body.terminalId.trim();
@@ -117,19 +113,21 @@ export async function PATCH(req: Request, { params }: Params) {
         return jsonError("Terminal ID harus berupa [A-Za-z0-9_-]", 400);
       }
       if (tid !== terminal.terminalId) {
-        const exists = await prisma.terminal.findUnique({
-          where: { terminalId: tid },
-          select: { id: true },
-        });
-        if (exists) {
-          return jsonError("Terminal ID sudah dipakai akun lain", 409);
-        }
         data.terminalId = tid;
+        auditFields.push("terminalId");
       }
     }
 
     if (body.packageId !== undefined) {
-      const packageId = body.packageId?.trim() || null;
+      const packageId =
+        typeof body.packageId === "string"
+          ? body.packageId.trim() || null
+          : body.packageId === null
+            ? null
+            : undefined;
+      if (packageId === undefined) {
+        return jsonError("packageId tidak valid", 400);
+      }
       if (packageId) {
         const pkg = await prisma.package.findFirst({
           where: { id: packageId, status: PackageStatus.ACTIVE },
@@ -140,38 +138,63 @@ export async function PATCH(req: Request, { params }: Params) {
       } else {
         data.packageId = null;
       }
+      auditFields.push("packageId");
     }
 
     if (body.passwordTrading !== undefined) {
-      const passwordTrading = body.passwordTrading?.trim() || null;
-      if (!passwordTrading) {
-        return jsonError("Password Trading wajib diisi", 400);
-      }
-      data.passwordTrading = passwordTrading;
+      const pw = parsePasswordTrading(
+        typeof body.passwordTrading === "string" ? body.passwordTrading : "",
+      );
+      if (!pw.ok) return jsonError(pw.error, 400);
+      data.passwordTrading = pw.value;
+      auditFields.push("passwordTrading");
     }
 
     if (body.serverBroker !== undefined) {
-      const serverBroker = body.serverBroker?.trim() || null;
+      const serverBroker =
+        typeof body.serverBroker === "string"
+          ? body.serverBroker.trim()
+          : "";
       if (!serverBroker) {
         return jsonError("Server Broker wajib diisi", 400);
       }
       data.serverBroker = serverBroker;
+      auditFields.push("serverBroker");
     }
 
     if ("expiresAt" in body) {
       if (!canSetTerminalExpiry(user.role)) {
         throw new AuthError("Forbidden", 403);
       }
-      const parsed = parseExpiresAt(body.expiresAt);
-      if (!parsed.ok) return jsonError(parsed.error);
-      data.expiresAt = parsed.date;
+      const exp = parseExpiresAt(body.expiresAt);
+      if (!exp.ok) return jsonError(exp.error);
+      data.expiresAt = exp.date;
+      auditFields.push("expiresAt");
     }
 
     let apiKey: string | undefined;
-    if (body.rotateApiKey) {
+    if (body.rotateApiKey === true) {
       apiKey = generateApiKey();
       data.apiKeyHash = hashApiKey(apiKey);
       data.apiKeyEnc = encryptApiKey(apiKey);
+      auditFields.push("rotateApiKey");
+    }
+
+    if (Object.keys(data).length === 0) {
+      return jsonOk({
+        ok: true,
+        terminal: {
+          id: terminal.id,
+          terminalId: terminal.terminalId,
+          name: terminal.name,
+          enabled: terminal.enabled,
+          expiresAt: terminal.expiresAt?.toISOString() ?? null,
+          packageId: terminal.packageId,
+          packageName: null,
+          passwordTrading: terminal.passwordTrading,
+          serverBroker: terminal.serverBroker,
+        },
+      });
     }
 
     const updated = await prisma.terminal.update({
@@ -182,19 +205,21 @@ export async function PATCH(req: Request, { params }: Params) {
       },
     });
 
-    if ("expiresAt" in body) {
-      await prisma.auditLog.create({
-        data: {
-          actorUserId: user.id,
-          action: "terminals.set_expiry",
-          meta: {
-            id: updated.id,
-            terminalId: updated.terminalId,
-            expiresAt: updated.expiresAt?.toISOString() ?? null,
-          },
+    // fields only — never log passwordTrading / apiKey values
+    await prisma.auditLog.create({
+      data: {
+        actorUserId: user.id,
+        action: "terminals.update",
+        meta: {
+          id: updated.id,
+          terminalId: updated.terminalId,
+          fields: auditFields,
+          ...(auditFields.includes("expiresAt")
+            ? { expiresAt: updated.expiresAt?.toISOString() ?? null }
+            : {}),
         },
-      });
-    }
+      },
+    });
 
     return jsonOk({
       ok: true,

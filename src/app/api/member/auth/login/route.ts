@@ -12,17 +12,61 @@ import {
   clientIpFromRequest,
   userAgentFromRequest,
 } from "@/lib/session-meta";
-import { handleRouteError, jsonError, jsonOk } from "@/lib/api";
+import { handleRouteError, jsonError, jsonOk, parseJsonBody } from "@/lib/api";
+import { rateLimit } from "@/lib/rate-limit";
+import { verifyTurnstileToken } from "@/lib/turnstile";
+
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_IP_LIMIT = 30;
+const LOGIN_IDENTITY_LIMIT = 10;
 
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as { email?: string; password?: string };
-    const email = body.email?.trim().toLowerCase();
+    const ip = clientIpFromRequest(req) ?? "unknown";
+    const ipLimit = rateLimit(
+      `member:login:ip:${ip}`,
+      LOGIN_IP_LIMIT,
+      LOGIN_WINDOW_MS,
+    );
+    if (!ipLimit.ok) {
+      return jsonError("Terlalu banyak percobaan login. Coba lagi nanti.", 429, {
+        headers: { "Retry-After": String(ipLimit.retryAfterSec) },
+      });
+    }
+
+    const parsed = await parseJsonBody<{
+      email?: string;
+      password?: string;
+      turnstileToken?: string;
+    }>(req);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
+
+    const captcha = await verifyTurnstileToken(
+      typeof body.turnstileToken === "string" ? body.turnstileToken : undefined,
+      clientIpFromRequest(req),
+    );
+    if (!captcha.ok) return jsonError(captcha.error, 400);
+
+    const email =
+      typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     // Match register hashing (trimmed). Autofill in PWA sometimes adds stray whitespace.
-    const password = typeof body.password === "string" ? body.password.trim() : "";
+    const password =
+      typeof body.password === "string" ? body.password.trim() : "";
 
     if (!email || !password) {
       return jsonError("Email and password required");
+    }
+
+    const idLimit = rateLimit(
+      `member:login:id:${ip}:${email}`,
+      LOGIN_IDENTITY_LIMIT,
+      LOGIN_WINDOW_MS,
+    );
+    if (!idLimit.ok) {
+      return jsonError("Terlalu banyak percobaan login. Coba lagi nanti.", 429, {
+        headers: { "Retry-After": String(idLimit.retryAfterSec) },
+      });
     }
 
     const member = await prisma.member.findUnique({ where: { email } });

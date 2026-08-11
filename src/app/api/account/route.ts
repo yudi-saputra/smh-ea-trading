@@ -4,6 +4,7 @@ import {
   AuthError,
   canCreateTerminal,
   canViewAccounts,
+  getSessionUser,
   requireUser,
   terminalOwnerFilter,
 } from "@/lib/auth";
@@ -15,16 +16,43 @@ import {
   hashApiKey,
 } from "@/lib/crypto";
 import { parseExpiresAt } from "@/lib/expiry";
-import { handleRouteError, jsonError, jsonOk } from "@/lib/api";
+import { handleRouteError, jsonError, jsonOk, parseJsonBody } from "@/lib/api";
+import { parsePasswordTrading } from "@/lib/password-trading";
+import {
+  mapTerminalListItem,
+  snapshotListSelect,
+} from "@/lib/terminal-dto";
+
+/**
+ * Shared /api/account actor order: admin (staff/super) first, then member.
+ * Avoids dual-cookie cases where admin only sees their member-scoped list.
+ */
+async function resolveAccountListActor() {
+  const user = await getSessionUser();
+  if (user && canViewAccounts(user.role)) {
+    return { kind: "user" as const, user };
+  }
+  const member = await getSessionMember();
+  if (member) return { kind: "member" as const, member };
+  if (user) throw new AuthError("Forbidden", 403);
+  throw new AuthError("Unauthorized", 401);
+}
 
 export async function GET() {
   try {
-    const member = await getSessionMember();
-    if (member) {
+    const actor = await resolveAccountListActor();
+
+    if (actor.kind === "member") {
       const terminals = await prisma.terminal.findMany({
-        where: { ownerMemberId: member.id },
-        include: {
-          snapshot: true,
+        where: { ownerMemberId: actor.member.id },
+        select: {
+          id: true,
+          terminalId: true,
+          name: true,
+          enabled: true,
+          expiresAt: true,
+          lastSeenAt: true,
+          snapshot: { select: snapshotListSelect },
           memberOwner: { select: { id: true, email: true, name: true } },
         },
         orderBy: { createdAt: "desc" },
@@ -32,45 +60,31 @@ export async function GET() {
 
       return jsonOk({
         ok: true,
-        terminals: terminals.map((t) => ({
-          id: t.id,
-          terminalId: t.terminalId,
-          name: t.name,
-          enabled: t.enabled,
-          expiresAt: t.expiresAt?.toISOString() ?? null,
-          lastSeenAt: t.lastSeenAt,
-          owner: t.memberOwner
-            ? {
-                id: t.memberOwner.id,
-                email: t.memberOwner.email,
-                displayName: t.memberOwner.name,
-              }
-            : null,
-          snapshot: t.snapshot
-            ? {
-                status: t.snapshot.status,
-                symbol: t.snapshot.symbol,
-                balance: t.snapshot.balance?.toString() ?? null,
-                equity: t.snapshot.equity?.toString() ?? null,
-                positions: t.snapshot.positions,
-                floatPnl: t.snapshot.floatPnl?.toString() ?? null,
-                dailyPnl: t.snapshot.dailyPnl?.toString() ?? null,
-                updatedAt: t.snapshot.updatedAt,
-              }
-            : null,
-        })),
+        terminals: terminals.map((t) =>
+          mapTerminalListItem({
+            ...t,
+            owner: t.memberOwner
+              ? {
+                  id: t.memberOwner.id,
+                  email: t.memberOwner.email,
+                  displayName: t.memberOwner.name,
+                }
+              : null,
+          }),
+        ),
       });
     }
 
-    const user = await requireUser();
-    if (!canViewAccounts(user.role)) {
-      throw new AuthError("Forbidden", 403);
-    }
-
     const terminals = await prisma.terminal.findMany({
-      where: terminalOwnerFilter(user),
-      include: {
-        snapshot: true,
+      where: terminalOwnerFilter(actor.user),
+      select: {
+        id: true,
+        terminalId: true,
+        name: true,
+        enabled: true,
+        expiresAt: true,
+        lastSeenAt: true,
+        snapshot: { select: snapshotListSelect },
         owner: {
           select: { id: true, email: true, displayName: true },
         },
@@ -83,33 +97,18 @@ export async function GET() {
 
     return jsonOk({
       ok: true,
-      terminals: terminals.map((t) => ({
-        id: t.id,
-        terminalId: t.terminalId,
-        name: t.name,
-        enabled: t.enabled,
-        expiresAt: t.expiresAt?.toISOString() ?? null,
-        lastSeenAt: t.lastSeenAt,
-        owner: t.memberOwner
-          ? {
-              id: t.memberOwner.id,
-              email: t.memberOwner.email,
-              displayName: t.memberOwner.name,
-            }
-          : t.owner,
-        snapshot: t.snapshot
-          ? {
-              status: t.snapshot.status,
-              symbol: t.snapshot.symbol,
-              balance: t.snapshot.balance?.toString() ?? null,
-              equity: t.snapshot.equity?.toString() ?? null,
-              positions: t.snapshot.positions,
-              floatPnl: t.snapshot.floatPnl?.toString() ?? null,
-              dailyPnl: t.snapshot.dailyPnl?.toString() ?? null,
-              updatedAt: t.snapshot.updatedAt,
-            }
-          : null,
-      })),
+      terminals: terminals.map((t) =>
+        mapTerminalListItem({
+          ...t,
+          owner: t.memberOwner
+            ? {
+                id: t.memberOwner.id,
+                email: t.memberOwner.email,
+                displayName: t.memberOwner.name,
+              }
+            : t.owner,
+        }),
+      ),
     });
   } catch (err) {
     return handleRouteError(err);
@@ -123,7 +122,7 @@ export async function POST(req: Request) {
       throw new AuthError("Forbidden", 403);
     }
 
-    const body = (await req.json()) as {
+    const parsed = await parseJsonBody<{
       ownerMemberId?: string;
       terminalId?: string;
       name?: string;
@@ -131,9 +130,12 @@ export async function POST(req: Request) {
       packageId?: string;
       passwordTrading?: string;
       serverBroker?: string;
-    };
+    }>(req);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
 
-    const ownerMemberId = body.ownerMemberId?.trim();
+    const ownerMemberId =
+      typeof body.ownerMemberId === "string" ? body.ownerMemberId.trim() : "";
     if (!ownerMemberId) {
       return jsonError("Pilih member terlebih dahulu", 400);
     }
@@ -145,7 +147,9 @@ export async function POST(req: Request) {
     }
 
     // Multi-akun: terminalId bebas per MT5; default ke idTrading member jika kosong.
-    const terminalId = (body.terminalId?.trim() || owner.idTrading.trim());
+    const terminalId =
+      (typeof body.terminalId === "string" ? body.terminalId.trim() : "") ||
+      owner.idTrading.trim();
     if (!terminalId) {
       return jsonError("Terminal ID wajib diisi", 400);
     }
@@ -153,18 +157,24 @@ export async function POST(req: Request) {
       return jsonError("Terminal ID harus berupa [A-Za-z0-9_-]", 400);
     }
 
-    const passwordTrading =
-      body.passwordTrading?.trim() || owner.passwordTrading.trim();
-    if (!passwordTrading) {
-      return jsonError("Password Trading wajib diisi", 400);
-    }
+    const passwordRaw =
+      (typeof body.passwordTrading === "string"
+        ? body.passwordTrading.trim()
+        : "") || owner.passwordTrading.trim();
+    const passwordParsed = parsePasswordTrading(passwordRaw);
+    if (!passwordParsed.ok) return jsonError(passwordParsed.error, 400);
+    const passwordTrading = passwordParsed.value;
+
     const serverBroker =
-      body.serverBroker?.trim() || owner.serverBroker.trim();
+      (typeof body.serverBroker === "string" ? body.serverBroker.trim() : "") ||
+      owner.serverBroker.trim();
     if (!serverBroker) {
       return jsonError("Server Broker wajib diisi", 400);
     }
 
-    const packageId = body.packageId?.trim() || owner.packageId;
+    const packageId =
+      (typeof body.packageId === "string" ? body.packageId.trim() : "") ||
+      owner.packageId;
     if (!packageId) {
       return jsonError("Paket wajib dipilih", 400);
     }
@@ -177,18 +187,14 @@ export async function POST(req: Request) {
     }
 
     const name =
-      body.name?.trim() ||
+      (typeof body.name === "string" ? body.name.trim() : "") ||
       owner.name.trim() ||
       owner.email;
 
     const expiresParsed = parseExpiresAt(body.expiresAt);
     if (!expiresParsed.ok) return jsonError(expiresParsed.error);
 
-    const exists = await prisma.terminal.findUnique({ where: { terminalId } });
-    if (exists) {
-      return jsonError("Terminal ID sudah dipakai akun lain", 409);
-    }
-
+    // Unique on terminalId — race → P2002 → 409 via handleRouteError
     const apiKey = generateApiKey();
     const terminal = await prisma.terminal.create({
       data: {
@@ -213,6 +219,8 @@ export async function POST(req: Request) {
           terminalId: terminal.terminalId,
           id: terminal.id,
           ownerMemberId: owner.id,
+          packageId: pkg.id,
+          serverBroker,
           expiresAt: terminal.expiresAt?.toISOString() ?? null,
         },
       },
