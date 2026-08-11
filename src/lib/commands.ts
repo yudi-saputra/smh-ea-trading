@@ -15,6 +15,8 @@ export const PHASE1_COMMANDS = new Set([
   "/setcutloss",
   "/maxlot",
   "/maxlayer",
+  "/setbaselot",
+  "/setlayersper",
   "/tradetime",
   "/tradestart",
   "/tradeend",

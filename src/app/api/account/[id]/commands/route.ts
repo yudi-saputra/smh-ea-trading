@@ -91,7 +91,7 @@ export async function POST(req: Request, { params }: Params) {
     const text = normalizeCommandText(body.text);
     if (!isAllowedPhase1Command(text)) {
       return jsonError(
-        "Command not allowed. Use /on /off /pause /reset /status /conservative /aggressive /oneway /twoway /setlayer /setmultiplier /settarget /setcutloss /maxlot /maxlayer /tradetime /tradestart /tradeend",
+        "Command not allowed. Use /on /off /pause /reset /status /conservative /aggressive /oneway /twoway /setlayer /setmultiplier /settarget /setcutloss /maxlot /maxlayer /setbaselot /setlayersper /tradetime /tradestart /tradeend",
       );
     }
 

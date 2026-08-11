@@ -296,11 +296,17 @@ function BantuanGuide() {
         <GuideTerm title="MAXLAYER">
           Mengatur jumlah maksimal layer yang dapat dibuka.
         </GuideTerm>
+        <GuideTerm title="SETBASELOT">
+          Mengatur lot awal (base lot) untuk entry.
+        </GuideTerm>
+        <GuideTerm title="SETLAYERSPER">
+          Mode Conservative: naik lot setiap N layer.
+        </GuideTerm>
       </GuideSection>
 
       <GuideSection title="Contoh">
         <code className="type-body-sm block rounded-lg bg-muted px-3 py-2 font-mono leading-relaxed text-foreground">
-          setlayer 1000 | maxlot 1.0 | maxlayer 10
+          setlayer 1000 | setbaselot 0.01 | setlayersper 3 | maxlot 1.0
         </code>
       </GuideSection>
 

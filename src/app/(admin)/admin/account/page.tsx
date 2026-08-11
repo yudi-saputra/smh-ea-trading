@@ -12,7 +12,7 @@ import { decryptApiKey } from "@/lib/crypto";
 import { formatExpiryDate, expiryStatus } from "@/lib/expiry";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Account EA" };
+export const metadata: Metadata = { title: "Daftar Akun EA" };
 
 function isOnline(lastSeenAt: Date | null) {
   if (!lastSeenAt) return false;

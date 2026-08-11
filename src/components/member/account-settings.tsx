@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 type SettingKey =
   | "setlayer"
   | "setmultiplier"
+  | "setbaselot"
+  | "setlayersper"
   | "settarget"
   | "setcutloss"
   | "maxlot"
@@ -32,6 +34,13 @@ const SETTINGS: SettingDef[] = [
     label: "Multiplier",
     min: 1.1,
     max: 10,
+  },
+  { key: "setbaselot", command: "/setbaselot", label: "Lot Awal", min: 0.01 },
+  {
+    key: "setlayersper",
+    command: "/setlayersper",
+    label: "Naik Lot per ( x ) layer",
+    min: 1,
   },
   { key: "settarget", command: "/settarget", label: "Target", min: 0 },
   { key: "setcutloss", command: "/setcutloss", label: "Cutloss", min: 0 },
@@ -109,6 +118,8 @@ function normalizeTimeInput(raw: string) {
 function valuesToDraft(values: {
   layer?: string | null;
   multiplier?: string | null;
+  baseLot?: string | null;
+  layersPerLot?: number | null;
   target?: string | null;
   cutloss?: string | null;
   maxLot?: string | null;
@@ -117,6 +128,8 @@ function valuesToDraft(values: {
   return {
     setlayer: toInputValue(values.layer),
     setmultiplier: toInputValue(values.multiplier),
+    setbaselot: toInputValue(values.baseLot),
+    setlayersper: toInputValue(values.layersPerLot),
     settarget: toInputValue(values.target),
     setcutloss: toInputValue(values.cutloss),
     maxlot: toInputValue(values.maxLot),
@@ -134,6 +147,8 @@ export function MemberAccountSettings({
   values: {
     layer?: string | null;
     multiplier?: string | null;
+    baseLot?: string | null;
+    layersPerLot?: number | null;
     target?: string | null;
     cutloss?: string | null;
     maxLot?: string | null;
@@ -149,6 +164,8 @@ export function MemberAccountSettings({
     [
       values.layer,
       values.multiplier,
+      values.baseLot,
+      values.layersPerLot,
       values.target,
       values.cutloss,
       values.maxLot,

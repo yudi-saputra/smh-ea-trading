@@ -40,6 +40,20 @@ export default async function MemberAccountDetailPage({ params }: Props) {
   });
 
   const raw = terminal.snapshot;
+  const hb =
+    raw?.rawJson && typeof raw.rawJson === "object" && !Array.isArray(raw.rawJson)
+      ? (raw.rawJson as Record<string, unknown>)
+      : null;
+  const hbNum = (key: string): string | null => {
+    const v = hb?.[key];
+    if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) return null;
+    return String(v);
+  };
+  const hbInt = (key: string): number | null => {
+    const v = hb?.[key];
+    if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) return null;
+    return Math.trunc(v);
+  };
   const snap = raw
     ? {
         status: raw.status,
@@ -64,6 +78,8 @@ export default async function MemberAccountDetailPage({ params }: Props) {
       values={{
         layer: raw?.layer?.toString() ?? null,
         multiplier: raw?.multiplier?.toString() ?? null,
+        baseLot: hbNum("base_lot"),
+        layersPerLot: hbInt("layers_per_lot"),
         target: raw?.target?.toString() ?? null,
         cutloss: raw?.cutloss?.toString() ?? null,
         maxLot: raw?.maxLot?.toString() ?? null,

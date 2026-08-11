@@ -60,6 +60,8 @@ const COMMAND_LABELS: Record<string, string> = {
   "/setcutloss": "CUTLOSS",
   "/maxlot": "MAX LOT",
   "/maxlayer": "MAX LAYER",
+  "/setbaselot": "LOT AWAL",
+  "/setlayersper": "NAIK LOT/LAYER",
   "/tradetime": "TRADE TIME",
   "/tradestart": "TRADE START",
   "/tradeend": "TRADE END",
