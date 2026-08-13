@@ -219,9 +219,9 @@ function GuideTerm({
   return (
     <div>
       <p className="type-body font-semibold text-foreground">{title}</p>
-      <p className="type-body mt-0.5 leading-relaxed text-muted-foreground">
+      <div className="type-body mt-0.5 space-y-2 leading-relaxed text-muted-foreground">
         {children}
-      </p>
+      </div>
     </div>
   );
 }
@@ -244,77 +244,104 @@ function GuideSection({
 function BantuanGuide() {
   return (
     <div className="space-y-5 pr-2">
-      <GuideSection title="Kontrol EA SMH">
+      <GuideSection title="Fungsi Tombol">
         <GuideTerm title="ON">
-          Mengaktifkan EA dan mulai membuka posisi sesuai strategi.
+          <p>
+            Mengaktifkan EA dan memulai trading secara otomatis sesuai dengan
+            logic yang digunakan.
+          </p>
         </GuideTerm>
         <GuideTerm title="OFF">
-          Menonaktifkan EA dan menutup seluruh posisi yang sedang terbuka.
+          <p>
+            Menonaktifkan EA sekaligus menutup seluruh posisi yang sedang
+            terbuka.
+          </p>
         </GuideTerm>
         <GuideTerm title="PAUSE">
-          Menghentikan pembukaan posisi baru. Posisi yang sudah terbuka tetap
-          dikelola hingga selesai.
+          <p>
+            Menjeda EA dan menghentikan pembukaan posisi baru. Posisi yang
+            sudah terbuka tetap berjalan.
+          </p>
         </GuideTerm>
         <GuideTerm title="RESET">
-          Mereset target profit harian dan batas kerugian harian.
+          <p>
+            Mereset sistem setelah target profit atau batas kerugian harian
+            tercapai.
+          </p>
         </GuideTerm>
       </GuideSection>
 
-      <GuideSection title="Arah Trading">
+      <GuideSection title="Mode Entry">
         <GuideTerm title="1 ARAH">
-          EA hanya membuka posisi BUY atau SELL saja.
+          <p>
+            EA hanya membuka posisi BUY atau SELL sesuai dengan logic dan signal
+            yang digunakan.
+          </p>
         </GuideTerm>
         <GuideTerm title="2 ARAH">
-          EA dapat membuka posisi BUY, SELL, dan HEDGE secara bersamaan.
+          <p>
+            EA dapat membuka posisi BUY dan SELL secara bersamaan sesuai dengan
+            sistem hedging.
+          </p>
         </GuideTerm>
       </GuideSection>
 
       <GuideSection title="Mode Lot">
         <GuideTerm title="CONSERVATIVE">
-          Kenaikan lot dilakukan secara bertahap dan lebih stabil.
+          <p>
+            Lot meningkat secara bertahap berdasarkan penambahan lot yang lebih
+            stabil.
+          </p>
         </GuideTerm>
         <GuideTerm title="AGGRESSIVE">
-          Kenaikan lot menggunakan sistem multiplier sehingga lebih cepat
-          meningkat.
+          <p>
+            Lot meningkat menggunakan sistem perkalian (multiplier), sehingga
+            kenaikan lot lebih cepat.
+          </p>
         </GuideTerm>
       </GuideSection>
 
       <GuideSection title="Pengaturan">
-        <GuideTerm title="SETLAYER">
-          Mengatur jarak antar layer (dalam poin).
+        <GuideTerm title="Setlayer">
+          <p>Mengatur jarak antar layer posisi.</p>
         </GuideTerm>
-        <GuideTerm title="SETMULTIPLIER">
-          Mengatur nilai perkalian lot pada mode Aggressive.
+        <GuideTerm title="Setmultiplier">
+          <p>Mengatur nilai perkalian lot pada mode Aggressive.</p>
         </GuideTerm>
-        <GuideTerm title="SETTARGET">Mengatur target profit harian.</GuideTerm>
-        <GuideTerm title="SETCUTLOSS">
-          Mengatur batas kerugian harian.
+        <GuideTerm title="Settargetprofit">
+          <p>Mengatur target profit harian EA.</p>
         </GuideTerm>
-        <GuideTerm title="MAXLOT">
-          Mengatur batas maksimal lot setiap posisi.
+        <GuideTerm title="Setcutloss">
+          <p>Mengatur batas kerugian harian EA.</p>
         </GuideTerm>
-        <GuideTerm title="MAXLAYER">
-          Mengatur jumlah maksimal layer yang dapat dibuka.
+        <GuideTerm title="Maxlot">
+          <p>Mengatur batas maksimal lot untuk setiap posisi.</p>
         </GuideTerm>
-        <GuideTerm title="SETBASELOT">
-          Mengatur lot awal (base lot) untuk entry.
+        <GuideTerm title="Maxlayer">
+          <p>Mengatur jumlah maksimal layer yang dapat dibuka.</p>
         </GuideTerm>
-        <GuideTerm title="SETLAYERSPER">
-          Mode Conservative: naik lot setiap N layer.
+        <GuideTerm title="Lot Awal">
+          <p>
+            Mengatur ukuran lot pada posisi pertama saat EA mulai entry.
+          </p>
         </GuideTerm>
-      </GuideSection>
-
-      <GuideSection title="Contoh">
-        <code className="type-body-sm block rounded-lg bg-muted px-3 py-2 font-mono leading-relaxed text-foreground">
-          setlayer 1000 | setbaselot 0.01 | setlayersper 3 | maxlot 1.0
-        </code>
-      </GuideSection>
-
-      <GuideSection title="Admin">
-        <p className="type-body leading-relaxed text-muted-foreground">
-          Butuh aktivasi terminal, pengaturan EA, atau bantuan teknis? Hubungi
-          Admin melalui WhatsApp.
-        </p>
+        <GuideTerm title="Naik Lot Per X Layer">
+          <p>
+            Mengatur jumlah layer yang harus tercapai sebelum lot dinaikkan ke
+            ukuran berikutnya.
+          </p>
+          <div className="rounded-lg bg-muted px-3 py-2">
+            <p className="font-medium text-foreground">Contoh:</p>
+            <p className="mt-1 font-medium text-foreground">
+              Naik Lot Per 3 Layer
+            </p>
+            <ul className="mt-1.5 space-y-0.5 font-mono text-[0.925em]">
+              <li>Layer 1–3 → Lot awal</li>
+              <li>Layer 4–6 → Lot berikutnya</li>
+              <li>Layer 7–9 → Lot berikutnya</li>
+            </ul>
+          </div>
+        </GuideTerm>
       </GuideSection>
     </div>
   );
