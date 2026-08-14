@@ -50,7 +50,7 @@ export default async function MemberProfilePage() {
       <MemberSocialLinks />
 
       <p className="type-caption pb-2 pt-1 text-center text-muted-foreground">
-        SMH Control Panel v1.1
+        SMH Control Panel v1.3
       </p>
     </div>
   );
