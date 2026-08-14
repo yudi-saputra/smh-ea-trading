@@ -75,7 +75,7 @@ export function MemberThemeMenu() {
         >
           <SelectTrigger
             size="sm"
-            className="h-8 w-[7.5rem] shrink-0 rounded-lg border-border/80 bg-background"
+            className="h-8 w-30 shrink-0 rounded-lg border-border/80 bg-background"
             aria-label="Pilih theme"
           >
             <SelectValue placeholder="System" />
@@ -305,7 +305,7 @@ function BantuanGuide() {
         <GuideTerm title="Setlayer">
           <p>Mengatur jarak antar layer posisi.</p>
         </GuideTerm>
-        <GuideTerm title="Setmultiplier">
+        <GuideTerm title="Naik Lot Mode Agresif">
           <p>Mengatur nilai perkalian lot pada mode Aggressive.</p>
         </GuideTerm>
         <GuideTerm title="Settargetprofit">
@@ -341,6 +341,12 @@ function BantuanGuide() {
               <li>Layer 7–9 → Lot berikutnya</li>
             </ul>
           </div>
+        </GuideTerm>
+        <GuideTerm title="Naik Lot Mode Konservatif">
+          <p>
+            Mode Conservative: besar kenaikan lot setiap kali syarat layer
+            terpenuhi (contoh 0.01).
+          </p>
         </GuideTerm>
       </GuideSection>
     </div>

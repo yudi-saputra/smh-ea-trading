@@ -55,13 +55,14 @@ const COMMAND_LABELS: Record<string, string> = {
   "/oneway": "1 ARAH",
   "/twoway": "2 ARAH",
   "/setlayer": "LAYER",
-  "/setmultiplier": "MULTIPLIER",
+  "/setmultiplier": "NAIK LOT AGRESIF",
   "/settarget": "TARGET",
   "/setcutloss": "CUTLOSS",
   "/maxlot": "MAX LOT",
   "/maxlayer": "MAX LAYER",
   "/setbaselot": "LOT AWAL",
   "/setlayersper": "NAIK LOT/LAYER",
+  "/setlotinc": "NAIK LOT KONSERVATIF",
   "/tradetime": "TRADE TIME",
   "/tradestart": "TRADE START",
   "/tradeend": "TRADE END",
@@ -104,13 +105,13 @@ export function EaLogs({ logs }: { logs: EaLogRow[] }) {
   }
 
   return (
-    <ul className="max-h-[60dvh] divide-y divide-border/50 overflow-y-auto rounded-xl border border-border/60 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <ul className="max-h-[60dvh] divide-y divide-border/50 overflow-y-auto rounded-xl border border-border/60 scrollbar-none">
       {logs.map((log) => {
         const meta = statusMeta(log.status);
         return (
           <li key={log.id} className="px-3 py-3">
             <div className="flex items-start gap-2.5">
-              <div className="type-micro w-[52px] shrink-0 pt-0.5 leading-tight text-muted-foreground">
+              <div className="type-micro w-13 shrink-0 pt-0.5 leading-tight text-muted-foreground">
                 <p className="font-medium">{formatLogDate(log.createdAt)}</p>
                 <p className="font-mono tabular-nums">
                   {formatLogTime(log.createdAt)}
@@ -127,7 +128,7 @@ export function EaLogs({ logs }: { logs: EaLogRow[] }) {
               </span>
 
               <div className="min-w-0 flex-1">
-                <p className="type-body break-words font-semibold leading-snug text-foreground">
+                <p className="type-body wrap-break-word font-semibold leading-snug text-foreground">
                   {formatLogTitle(log.text, log.resultMessage)}
                 </p>
                 {!log.resultMessage ? (

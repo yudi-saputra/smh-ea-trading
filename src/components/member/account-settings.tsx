@@ -11,6 +11,7 @@ type SettingKey =
   | "setmultiplier"
   | "setbaselot"
   | "setlayersper"
+  | "setlotinc"
   | "settarget"
   | "setcutloss"
   | "maxlot"
@@ -31,9 +32,15 @@ const SETTINGS: SettingDef[] = [
   {
     key: "setmultiplier",
     command: "/setmultiplier",
-    label: "Multiplier",
+    label: "Naik Lot Mode Agresif",
     min: 1.1,
     max: 10,
+  },
+  {
+    key: "setlotinc",
+    command: "/setlotinc",
+    label: "Naik Lot Mode Konservatif",
+    min: 0.01,
   },
   { key: "setbaselot", command: "/setbaselot", label: "Lot Awal", min: 0.01 },
   {
@@ -120,6 +127,7 @@ function valuesToDraft(values: {
   multiplier?: string | null;
   baseLot?: string | null;
   layersPerLot?: number | null;
+  lotIncrement?: string | null;
   target?: string | null;
   cutloss?: string | null;
   maxLot?: string | null;
@@ -130,6 +138,7 @@ function valuesToDraft(values: {
     setmultiplier: toInputValue(values.multiplier),
     setbaselot: toInputValue(values.baseLot),
     setlayersper: toInputValue(values.layersPerLot),
+    setlotinc: toInputValue(values.lotIncrement),
     settarget: toInputValue(values.target),
     setcutloss: toInputValue(values.cutloss),
     maxlot: toInputValue(values.maxLot),
@@ -149,6 +158,7 @@ export function MemberAccountSettings({
     multiplier?: string | null;
     baseLot?: string | null;
     layersPerLot?: number | null;
+    lotIncrement?: string | null;
     target?: string | null;
     cutloss?: string | null;
     maxLot?: string | null;
@@ -166,6 +176,7 @@ export function MemberAccountSettings({
       values.multiplier,
       values.baseLot,
       values.layersPerLot,
+      values.lotIncrement,
       values.target,
       values.cutloss,
       values.maxLot,
@@ -491,7 +502,7 @@ export function MemberAccountSettings({
                   onKeyDown={(e) => {
                     if (e.key === "Enter") void applyTradeWindow();
                   }}
-                  className="type-body-sm h-8 w-[72px] rounded-md border-border/70 bg-transparent px-2 text-center font-medium tabular-nums shadow-none md:text-[length:var(--type-body-sm)]"
+                  className="type-body-sm h-8 w-18 rounded-md border-border/70 bg-transparent px-2 text-center font-medium tabular-nums shadow-none md:text-(length:--type-body-sm)"
                 />
                 <span className="type-body-sm text-muted-foreground">–</span>
                 <Input
@@ -508,7 +519,7 @@ export function MemberAccountSettings({
                   onKeyDown={(e) => {
                     if (e.key === "Enter") void applyTradeWindow();
                   }}
-                  className="type-body-sm h-8 w-[72px] rounded-md border-border/70 bg-transparent px-2 text-center font-medium tabular-nums shadow-none md:text-[length:var(--type-body-sm)]"
+                  className="type-body-sm h-8 w-18 rounded-md border-border/70 bg-transparent px-2 text-center font-medium tabular-nums shadow-none md:text-(length:--type-body-sm)"
                 />
                 <Button
                   type="button"
@@ -562,7 +573,7 @@ export function MemberAccountSettings({
                       onKeyDown={(e) => {
                         if (e.key === "Enter") void apply(def);
                       }}
-                      className="type-body-sm h-8 w-[88px] rounded-md border-border/70 bg-transparent px-2 text-right font-medium tabular-nums shadow-none md:text-[length:var(--type-body-sm)]"
+                      className="type-body-sm h-8 w-22 rounded-md border-border/70 bg-transparent px-2 text-right font-medium tabular-nums shadow-none md:text-(length:--type-body-sm)"
                     />
                     <Button
                       type="button"

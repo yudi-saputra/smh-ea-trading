@@ -29,6 +29,7 @@ const HEARTBEAT_KEYS = [
   "max_layer",
   "base_lot",
   "layers_per_lot",
+  "lot_increment",
   "trade_time",
   "trade_start",
   "trade_end",

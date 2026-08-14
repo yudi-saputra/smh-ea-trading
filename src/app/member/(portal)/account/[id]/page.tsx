@@ -80,6 +80,7 @@ export default async function MemberAccountDetailPage({ params }: Props) {
         multiplier: raw?.multiplier?.toString() ?? null,
         baseLot: hbNum("base_lot"),
         layersPerLot: hbInt("layers_per_lot"),
+        lotIncrement: hbNum("lot_increment"),
         target: raw?.target?.toString() ?? null,
         cutloss: raw?.cutloss?.toString() ?? null,
         maxLot: raw?.maxLot?.toString() ?? null,
@@ -142,6 +143,23 @@ export default async function MemberAccountDetailPage({ params }: Props) {
         snap={snap}
         online={online}
         settings={settings}
+        simHref={`/member/tools/simulasi?${new URLSearchParams({
+          ...(raw?.layer != null ? { layer: String(raw.layer) } : {}),
+          ...(raw?.multiplier != null
+            ? { multiplier: String(raw.multiplier) }
+            : {}),
+          ...(hbNum("base_lot") ? { baseLot: hbNum("base_lot")! } : {}),
+          ...(hbInt("layers_per_lot")
+            ? { layersPer: String(hbInt("layers_per_lot")) }
+            : {}),
+          ...(hbNum("lot_increment")
+            ? { lotInc: hbNum("lot_increment")! }
+            : {}),
+          ...(raw?.maxLot != null ? { maxLot: String(raw.maxLot) } : {}),
+          ...(snap?.mode != null
+            ? { mode: snap.mode === 1 ? "aggressive" : "conservative" }
+            : {}),
+        }).toString()}`}
       />
     </div>
   );

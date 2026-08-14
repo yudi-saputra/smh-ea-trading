@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   ArrowRightIcon,
+  CalculatorIcon,
   MonitorSmartphoneIcon,
   ZapIcon,
 } from "lucide-react";
@@ -126,6 +127,24 @@ export default async function MemberHomePage() {
           })}
         </div>
       </div>
+
+      <Link
+        href="/member/tools/simulasi"
+        className="flex items-center gap-3 rounded-2xl border border-border/80 bg-card px-4 py-3.5 active:bg-accent/30"
+      >
+        <div className="min-w-0 flex-1">
+          <p className="type-ui font-medium">Simulasi Lot & Modal</p>
+          <p className="type-caption mt-0.5 text-muted-foreground">
+            Hitung perkiraan lot dan floating per layer.
+          </p>
+        </div>
+        <span
+          className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/5"
+          aria-hidden
+        >
+          <CalculatorIcon className="size-5 text-foreground" />
+        </span>
+      </Link>
 
       <section className="space-y-3">
         <div className="flex items-start justify-between gap-3">

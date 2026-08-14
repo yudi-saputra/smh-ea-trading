@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { SettingsIcon } from "lucide-react";
+import { CalculatorIcon, SettingsIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,10 +49,12 @@ export function MemberDetailAccount({
   snap,
   online = true,
   settings,
+  simHref,
 }: {
   snap: SnapshotData | null;
   online?: boolean;
   settings?: React.ReactNode;
+  simHref?: string;
 }) {
   const [open, setOpen] = useState(false);
   const equity = snap?.equity ?? null;
@@ -78,18 +81,33 @@ export function MemberDetailAccount({
           />
           <h3 className="type-ui truncate font-semibold">Detail Account</h3>
         </div>
-        {settings ? (
-          <Button
-            type="button"
-            size="xs"
-            variant="outline"
-            className="type-caption h-8 gap-1.5 rounded-md border-border px-2.5 font-semibold"
-            onClick={() => setOpen(true)}
-          >
-            <SettingsIcon className="size-3.5" />
-            Setting
-          </Button>
-        ) : null}
+        <div className="flex shrink-0 items-center gap-1.5">
+          {simHref ? (
+            <Button
+              asChild
+              size="xs"
+              variant="outline"
+              className="type-caption h-8 gap-1.5 rounded-md border-border px-2.5 font-semibold"
+            >
+              <Link href={simHref}>
+                <CalculatorIcon className="size-3.5" />
+                Simulasi
+              </Link>
+            </Button>
+          ) : null}
+          {settings ? (
+            <Button
+              type="button"
+              size="xs"
+              variant="outline"
+              className="type-caption h-8 gap-1.5 rounded-md border-border px-2.5 font-semibold"
+              onClick={() => setOpen(true)}
+            >
+              <SettingsIcon className="size-3.5" />
+              Setting
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       {!snap ? (
@@ -135,7 +153,7 @@ export function MemberDetailAccount({
 
       {settings ? (
         <Drawer open={open} onOpenChange={setOpen}>
-          <DrawerContent className="mx-auto w-full max-w-[430px] md:max-w-[768px]">
+          <DrawerContent className="mx-auto w-full max-w-107.5 md:max-w-3xl">
             <DrawerHeader className="text-left">
               <DrawerTitle>Settings</DrawerTitle>
               <DrawerDescription>
