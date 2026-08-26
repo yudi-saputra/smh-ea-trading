@@ -1,8 +1,8 @@
 {
   "id": "/member",
-  "name": "SMH Control Panel",
-  "short_name": "SMH Control Panel",
-  "description": "Portal member SMH Control Panel",
+  "name": "Strategic Market Handler",
+  "short_name": "SMH",
+  "description": "Portal member Strategic Market Handler",
   "start_url": "/member",
   "scope": "/member",
   "display": "standalone",

@@ -297,7 +297,7 @@ export function AuthRegisterForm({
       </Card>
 
       <p className="text-center text-xs text-muted-foreground text-balance">
-        Copyright © {new Date().getFullYear()} SMH Control Panel. All rights
+        Copyright © {new Date().getFullYear()} Strategic Market Handler. All rights
         reserved.
       </p>
     </div>

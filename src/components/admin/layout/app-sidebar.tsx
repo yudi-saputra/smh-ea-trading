@@ -121,7 +121,7 @@ export function AppSidebar({
         <div className="flex h-12 items-center gap-2.5 overflow-visible px-2 py-1.5">
           <SmhLogo size={32} className="size-8 object-contain" />
           <span className="truncate text-base font-semibold leading-none">
-            SMH Control Panel
+            Strategic Market Handler
           </span>
         </div>
       </SidebarHeader>

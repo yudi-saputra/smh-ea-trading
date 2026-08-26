@@ -19,10 +19,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "SMH Control Panel",
-    template: "%s - SMH Control Panel",
+    default: "Strategic Market Handler",
+    template: "%s - Strategic Market Handler",
   },
-  description: "SMH Control Panel",
+  description: "Strategic Market Handler",
   icons: {
     icon: [{ url: "/logo_smh.png", type: "image/png" }],
     shortcut: "/logo_smh.png",

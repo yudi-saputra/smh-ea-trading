@@ -115,7 +115,7 @@ export function MemberPwaRegister() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold leading-tight">
-              Install SMH Control Panel
+              Install Strategic Market Handler
             </p>
             {deferred ? (
               <p className="mt-0.5 text-xs text-muted-foreground">

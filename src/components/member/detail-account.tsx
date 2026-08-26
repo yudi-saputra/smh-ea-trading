@@ -57,7 +57,6 @@ export function MemberDetailAccount({
   simHref?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const equity = snap?.equity ?? null;
   const balance = snap?.balance ?? null;
   const floatPnl = snap?.floatPnl ?? null;
   const dailyPnl = snap?.dailyPnl ?? null;
@@ -116,8 +115,7 @@ export function MemberDetailAccount({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-px border-b border-border/50 bg-border/40">
-            <HeroStat label="Equity" value={formatNum(equity)} />
+          <div className="grid grid-cols-2 gap-px border-b border-border/50 bg-border/40">
             <HeroStat
               label="Float"
               value={formatNum(floatPnl)}

@@ -60,11 +60,11 @@
   --popover-foreground: oklch(0.141 0.005 285.823);
   --primary: oklch(0.21 0.006 285.885);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
+  --secondary: oklch(0.945 0.002 286);
   --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
+  --muted: oklch(0.945 0.002 286);
   --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
+  --accent: oklch(0.945 0.002 286);
   --accent-foreground: oklch(0.21 0.006 285.885);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.92 0.004 286.32);
@@ -86,7 +86,8 @@
   --sidebar-ring: oklch(0.705 0.015 286.067);
   --trading-profit: oklch(0.55 0.15 155);
   --trading-loss: oklch(0.55 0.2 25);
-  --trading-gold: oklch(0.55 0.12 78);
+  /* SMH logo mid-gold, darkened for light-mode contrast */
+  --trading-gold: oklch(0.62 0.155 70);
 }
 
 .dark {
@@ -123,7 +124,8 @@
   --sidebar-ring: oklch(0.552 0.016 285.938);
   --trading-profit: oklch(0.72 0.15 155);
   --trading-loss: oklch(0.65 0.2 25);
-  --trading-gold: oklch(0.78 0.04 90);
+  /* SMH logo gold (~#f0a000) */
+  --trading-gold: oklch(0.77 0.16 73);
 }
 
 :root {

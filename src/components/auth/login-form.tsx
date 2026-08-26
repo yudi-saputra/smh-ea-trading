@@ -90,11 +90,7 @@ export function AuthLoginForm({
             <CardTitle className="type-display text-xl">
               {isAdmin ? "Welcome back" : "Welcome back"}
             </CardTitle>
-            <CardDescription>
-              {isAdmin
-                ? "SMH Control Panel"
-                : "SMH Portal Member"}
-            </CardDescription>
+            <CardDescription>Strategic Market Handler</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
@@ -172,7 +168,7 @@ export function AuthLoginForm({
       </Card>
 
       <p className="text-center text-xs text-muted-foreground text-balance">
-        Copyright © {new Date().getFullYear()} SMH Control Panel. All rights
+        Copyright © {new Date().getFullYear()} Strategic Market Handler. All rights
         reserved.
       </p>
     </div>

@@ -3,12 +3,12 @@ import Script from "next/script";
 import { MemberPwaRegister } from "@/components/member/pwa-register";
 
 export const metadata: Metadata = {
-  applicationName: "SMH Control Panel",
+  applicationName: "Strategic Market Handler",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "SMH Control Panel",
+    title: "Strategic Market Handler",
   },
   // Nested layout replaces root `icons` — must set favicon + apple together.
   icons: {
