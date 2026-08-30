@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionMember } from "@/lib/auth-member";
-import { MemberHeader } from "@/components/member/header";
+import { MemberAppShell } from "@/components/member/app-shell";
 
 export default async function MemberPortalLayout({
   children,
@@ -10,5 +10,5 @@ export default async function MemberPortalLayout({
   const member = await getSessionMember();
   if (!member) redirect("/member/login");
 
-  return <MemberHeader>{children}</MemberHeader>;
+  return <MemberAppShell>{children}</MemberAppShell>;
 }

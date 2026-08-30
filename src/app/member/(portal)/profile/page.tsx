@@ -7,7 +7,7 @@ import {
   MemberProfileCard,
   MemberSocialLinks,
 } from "@/components/member/profile";
-import { MemberSecuritySection } from "@/components/member/change-password";
+import { MemberSecuritySection } from "@/components/member/security-section";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Profil Saya" };
@@ -28,13 +28,6 @@ export default async function MemberProfilePage() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-1">
-        <h2 className="type-display">Profil Saya</h2>
-        <p className="type-ui text-muted-foreground">
-          Kelola profil dan sesi login Anda
-        </p>
-      </div>
-
       <MemberProfileCard
         name={member.name}
         email={member.email}

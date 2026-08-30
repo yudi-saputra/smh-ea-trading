@@ -100,7 +100,7 @@ export function AuthRegisterForm({
       }
       setSuccess(
         data.message ??
-          "Pendaftaran berhasil. Silahkan Konfirmasi Admin untuk aktivasi akun anda.",
+          "Pendaftaran berhasil. Silakan konfirmasi ke Admin untuk aktivasi akun Anda.",
       );
       setForm({
         packageId: packages[0]?.id ?? "",
@@ -130,7 +130,7 @@ export function AuthRegisterForm({
           <div className="flex flex-col items-center gap-1.5">
             <CardTitle className="type-display text-xl">Daftar Member</CardTitle>
             <CardDescription>
-              Lengkapi informasi pribadi dan detail trading anda.
+              Lengkapi informasi pribadi dan detail trading Anda.
             </CardDescription>
           </div>
         </CardHeader>

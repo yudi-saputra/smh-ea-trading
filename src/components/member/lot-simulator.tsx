@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, LoaderCircleIcon, PlusIcon, XIcon } from "lucide-react";
+import { LoaderCircleIcon, PlusIcon, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,7 +85,6 @@ export function LotSimulator({ defaults }: { defaults?: LotSimDefaults }) {
   const [pending, setPending] = useState<ReturnType<
     typeof simulateLotCapital
   > | null>(null);
-  const router = useRouter();
   const outRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -128,20 +126,6 @@ export function LotSimulator({ defaults }: { defaults?: LotSimDefaults }) {
 
   return (
     <div className="space-y-5">
-      <header className="flex min-h-14 items-center gap-3">
-        <div className="min-w-0 flex-1 space-y-1">
-          <h1 className="type-display leading-snug">Simulasi Lot & Modal</h1>
-        </div>
-        <button
-          type="button"
-          aria-label="Kembali"
-          onClick={() => router.back()}
-          className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/80 bg-card text-muted-foreground transition-colors active:bg-accent/40"
-        >
-          <ArrowLeftIcon className="size-4" />
-        </button>
-      </header>
-
       <section className="space-y-3 rounded-lg border border-border/80 bg-card p-4">
         <div className="space-y-1.5">
           <p className="type-caption font-medium text-muted-foreground">

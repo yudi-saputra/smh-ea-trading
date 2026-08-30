@@ -8,13 +8,13 @@ import { cn } from "@/lib/utils";
 const TABS = [
   {
     href: "/member",
-    label: "Home",
+    label: "Beranda",
     icon: HomeIcon,
     match: (p: string) => p === "/member",
   },
   {
     href: "/member/account",
-    label: "Account",
+    label: "Akun",
     icon: MonitorSmartphoneIcon,
     match: (p: string) => p.startsWith("/member/account"),
   },
@@ -31,7 +31,7 @@ export function MemberBottomNav() {
 
   return (
     <nav className="z-20 shrink-0 border-t border-border bg-background pb-[env(safe-area-inset-bottom)]">
-      <ul className="mx-auto grid h-16 max-w-[430px] grid-cols-3 md:max-w-none">
+      <ul className="mx-auto grid h-16 max-w-107.5 grid-cols-3 md:max-w-none">
         {TABS.map((tab) => {
           const active = tab.match(pathname);
           const Icon = tab.icon;

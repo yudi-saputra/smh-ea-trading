@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 type Props = {
   terminalId: string;
   enabled: boolean;
+  expired?: boolean;
   status: string | null | undefined;
   mode: number | null | undefined;
   entryMode: number | null | undefined;
@@ -25,6 +26,7 @@ type Props = {
 export function MemberAccountControls({
   terminalId,
   enabled,
+  expired = false,
   status,
   mode,
   entryMode,
@@ -39,26 +41,34 @@ export function MemberAccountControls({
   const [modeState, setModeState] = useState(serverMode);
   const [entryState, setEntryState] = useState(serverEntry);
   const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [logsOpen, setLogsOpen] = useState(false);
 
   useEffect(() => setPaused(serverPaused), [serverPaused]);
   useEffect(() => setModeState(serverMode), [serverMode]);
   useEffect(() => setEntryState(serverEntry), [serverEntry]);
 
+  const canCommand = enabled && !expired;
+
   async function send(text: string, applyOptimistic?: () => void) {
-    if (!enabled || busy) return;
+    if (!canCommand || busy) return;
     setBusy(text);
+    setError(null);
     try {
       const res = await fetch(`/api/account/${terminalId}/commands`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setError(body?.error ?? "Perintah gagal dikirim. Coba lagi.");
+        return;
+      }
       applyOptimistic?.();
       router.refresh();
     } catch {
-      // ignore
+      setError("Tidak ada koneksi. Coba lagi.");
     } finally {
       setBusy(null);
     }
@@ -72,10 +82,7 @@ export function MemberAccountControls({
     <section className="overflow-hidden rounded-2xl border border-border bg-card">
       <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
         <div className="min-w-0">
-          <p className="type-ui font-semibold">Kontrol</p>
-          <p className="type-caption mt-0.5 text-muted-foreground">
-            Pause, reset, arah entry, dan mode strategi
-          </p>
+          <p className="type-ui font-semibold">EA Kontroler</p>
         </div>
         {logs ? (
           <Button
@@ -96,7 +103,7 @@ export function MemberAccountControls({
           label={paused ? "RESUME ENTRY" : "PAUSE ENTRY"}
           active={paused}
           loading={busy === "/on" || busy === "/pause"}
-          disabled={!enabled || anyBusy || !eaLive}
+          disabled={!canCommand || anyBusy || !eaLive}
           onClick={() =>
             send(paused ? "/on" : "/pause", () => setPaused(!paused))
           }
@@ -106,7 +113,7 @@ export function MemberAccountControls({
           label="RESET TARGET"
           tone="reset"
           loading={busy === "/reset"}
-          disabled={!enabled || anyBusy}
+          disabled={!canCommand || anyBusy}
           onClick={() => send("/reset")}
         />
 
@@ -115,14 +122,14 @@ export function MemberAccountControls({
             label="2 ARAH"
             active={entryState === 0}
             loading={busy === "/twoway"}
-            disabled={!enabled || anyBusy}
+            disabled={!canCommand || anyBusy}
             onClick={() => send("/twoway", () => setEntryState(0))}
           />
           <ActionButton
             label="1 ARAH"
             active={entryState === 1}
             loading={busy === "/oneway"}
-            disabled={!enabled || anyBusy}
+            disabled={!canCommand || anyBusy}
             onClick={() => send("/oneway", () => setEntryState(1))}
           />
         </div>
@@ -131,7 +138,7 @@ export function MemberAccountControls({
           label="CONSERVATIVE"
           active={modeState === 0}
           loading={busy === "/conservative"}
-          disabled={!enabled || anyBusy}
+          disabled={!canCommand || anyBusy}
           onClick={() => send("/conservative", () => setModeState(0))}
         />
         <ActionButton
@@ -139,11 +146,15 @@ export function MemberAccountControls({
           active={modeState === 1}
           activeColor="red"
           loading={busy === "/aggressive"}
-          disabled={!enabled || anyBusy}
+          disabled={!canCommand || anyBusy}
           onClick={() => send("/aggressive", () => setModeState(1))}
         />
 
-        {!enabled ? (
+        {expired ? (
+          <p className="type-caption pt-1 text-muted-foreground">
+            Langganan kedaluwarsa
+          </p>
+        ) : !enabled ? (
           <p className="type-caption pt-1 text-muted-foreground">EA Disabled</p>
         ) : !eaLive ? (
           <p className="type-caption pt-1 text-muted-foreground">
@@ -158,7 +169,7 @@ export function MemberAccountControls({
 
       {logs ? (
         <Drawer open={logsOpen} onOpenChange={setLogsOpen}>
-          <DrawerContent className="mx-auto w-full max-w-[430px] md:max-w-[768px]">
+          <DrawerContent className="mx-auto w-full max-w-107.5 md:max-w-3xl">
             <DrawerHeader className="text-left">
               <DrawerTitle>EA Logs</DrawerTitle>
               <DrawerDescription>
@@ -202,7 +213,7 @@ function ActionButton({
       className={cn(
         "type-body-sm inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border font-semibold tracking-wide uppercase transition-colors outline-none select-none",
         "disabled:pointer-events-none disabled:opacity-50",
-        loading && "!opacity-100",
+        loading && "opacity-100!",
         isReset &&
           "border-border bg-muted text-foreground hover:bg-muted/80 dark:border-white dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-100",
         !isReset &&

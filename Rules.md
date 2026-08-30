@@ -76,7 +76,7 @@ Aturan singkat:
 - Fitur member baru → `components/member/...`
 - Auth forms → `components/auth/...`
 - Shared lintas surface → `components/shared/...`
-- Nama export publik ikut domain (`MemberHeader`, `UsersTable`, `AuthLoginForm`); path mengikuti folder
+- Nama export publik ikut domain (`MemberAppShell`, `UsersTable`, `AuthLoginForm`); path mengikuti folder
 - **Peta URL & redirect:** lihat `docs/ROUTING.md` — update file itu setiap ada perubahan route
 
 ---
@@ -153,7 +153,7 @@ Pakai `DataTableAction` (icon + tooltip), **satu per aksi** — jangan bungkus b
 ### Dialog / AlertDialog
 
 - `DialogContent`: default `bg-popover` (sudah di `ui/dialog`) — jangan override ke `bg-background` kecuali perlu.
-- Lebar form: `sm:max-w-[425px]` (atau biarkan default `sm:max-w-md`).
+- Lebar form: `sm:max-w-106.25` (atau biarkan default `sm:max-w-md`).
 - Form: `<form className="grid gap-4">` mengelilingi header + fields + footer.
 - Field: `Label` + `Input` dalam `grid gap-2` (bukan `bg-secondary` custom di input).
 - Error: `rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive`.
@@ -162,7 +162,7 @@ Pakai `DataTableAction` (icon + tooltip), **satu per aksi** — jangan bungkus b
 - Form panjang: bungkus isi dialog dengan `ScrollArea` (`max-h-[90vh]`), **jangan** `overflow-y-auto` ad-hoc di `DialogContent`.
 
 ```tsx
-<DialogContent className="sm:max-w-[425px] gap-0 overflow-hidden p-0">
+<DialogContent className="sm:max-w-106.25 gap-0 overflow-hidden p-0">
   <ScrollArea className="max-h-[90vh]">
     <form className="grid gap-4 p-6">…</form>
   </ScrollArea>

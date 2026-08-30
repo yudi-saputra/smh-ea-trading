@@ -110,7 +110,7 @@ export async function PATCH(req: Request, { params }: Params) {
       const tid = body.terminalId.trim();
       if (!tid) return jsonError("ID Trading wajib diisi", 400);
       if (!TERMINAL_ID_RE.test(tid)) {
-        return jsonError("Terminal ID harus berupa [A-Za-z0-9_-]", 400);
+        return jsonError("ID Trading harus berupa [A-Za-z0-9_-]", 400);
       }
       if (tid !== terminal.terminalId) {
         data.terminalId = tid;

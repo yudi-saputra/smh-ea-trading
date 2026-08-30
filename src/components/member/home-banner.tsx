@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
@@ -33,19 +33,89 @@ export function HomeBanner({
   const items = slides.length > 0 ? slides : [];
   const [index, setIndex] = useState(0);
   const [loaded, setLoaded] = useState<Record<string, boolean>>({});
+  const [dragPx, setDragPx] = useState(0);
+  const [dragging, setDragging] = useState(false);
   const ms = Math.max(2, Math.min(60, intervalSec)) * 1000;
 
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const active = useRef(false);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const axis = useRef<"h" | "v" | null>(null);
+  const dragPxRef = useRef(0);
+
   useEffect(() => {
-    if (items.length <= 1) return;
+    if (items.length <= 1 || dragging) return;
     const id = window.setInterval(() => {
       setIndex((i) => (i + 1) % items.length);
     }, ms);
     return () => window.clearInterval(id);
-  }, [items.length, ms]);
+  }, [items.length, ms, dragging, index]);
 
   if (items.length === 0) return null;
 
   const current = items[index] ?? items[0];
+
+  function go(delta: number) {
+    setIndex((i) => (i + delta + items.length) % items.length);
+  }
+
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (items.length <= 1 || e.button !== 0) return;
+    active.current = true;
+    startX.current = e.clientX;
+    startY.current = e.clientY;
+    axis.current = null;
+    dragPxRef.current = 0;
+    setDragPx(0);
+    setDragging(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!active.current) return;
+    const dx = e.clientX - startX.current;
+    const dy = e.clientY - startY.current;
+
+    if (axis.current === null) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      axis.current = Math.abs(dx) >= Math.abs(dy) ? "h" : "v";
+      if (axis.current === "v") {
+        active.current = false;
+        dragPxRef.current = 0;
+        setDragPx(0);
+        setDragging(false);
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {
+          /* already released */
+        }
+        return;
+      }
+    }
+
+    if (axis.current !== "h") return;
+    dragPxRef.current = dx;
+    setDragPx(dx);
+  }
+
+  function endDrag() {
+    if (!active.current) return;
+    const dx = dragPxRef.current;
+    const w = wrapRef.current?.offsetWidth ?? 1;
+    const threshold = Math.min(56, w * 0.18);
+    if (axis.current === "h") {
+      if (dx <= -threshold) go(1);
+      else if (dx >= threshold) go(-1);
+    }
+    active.current = false;
+    axis.current = null;
+    dragPxRef.current = 0;
+    setDragPx(0);
+    setDragging(false);
+  }
+
+  const sliding = dragging;
 
   return (
     <div
@@ -54,10 +124,24 @@ export function HomeBanner({
         className,
       )}
     >
-      <div className="relative aspect-[2.2/1] w-full overflow-hidden">
+      <div
+        ref={wrapRef}
+        className="relative aspect-[2.2/1] w-full touch-none overflow-hidden select-none"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+      >
         <div
-          className="flex h-full transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform"
-          style={{ transform: `translate3d(-${index * 100}%, 0, 0)` }}
+          className={cn(
+            "flex h-full will-change-transform",
+            sliding
+              ? "transition-none"
+              : "transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]",
+          )}
+          style={{
+            transform: `translate3d(calc(-${index * 100}% + ${dragPx}px), 0, 0)`,
+          }}
         >
           {items.map((slide, i) => {
             const show = nearIndex(i, index, items.length);
@@ -72,9 +156,10 @@ export function HomeBanner({
                     src={slide.src}
                     alt={slide.alt}
                     fill
+                    draggable={false}
                     sizes="(max-width: 768px) 100vw, 768px"
                     className={cn(
-                      "object-cover transition-opacity duration-300",
+                      "pointer-events-none object-cover transition-opacity duration-300",
                       loaded[slide.id] ? "opacity-100" : "opacity-0",
                     )}
                     priority={i === 0}

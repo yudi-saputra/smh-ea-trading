@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 /** Static marketing mockup of the member control panel — not live data. */
 export function HeroPhoneMockup() {
   return (
-    <div className="relative mx-auto w-full max-w-[250px] max-sm:-mb-8 sm:max-w-95 md:max-w-100">
+    <div className="relative mx-auto w-full max-w-62.5 max-sm:-mb-8 sm:max-w-95 md:max-w-100">
       <div
         className="relative origin-top scale-[0.86] pt-7 sm:scale-100 sm:pt-12"
         aria-hidden
@@ -49,7 +49,7 @@ export function HeroPhoneMockup() {
         />
 
         {/* Phone bezel — portrait proportions */}
-        <div className="relative z-1 mx-auto w-[82%] max-w-[210px] sm:w-[76%] sm:max-w-75 md:max-w-77.5">
+        <div className="relative z-1 mx-auto w-[82%] max-w-52.5 sm:w-[76%] sm:max-w-75 md:max-w-77.5">
           <div className="rounded-[1.5rem] border border-zinc-700/80 bg-zinc-950 p-1 shadow-[0_20px_48px_-18px_rgba(0,0,0,0.5)] ring-1 ring-white/5 sm:rounded-[2rem] sm:p-2 sm:shadow-[0_24px_60px_-20px_rgba(0,0,0,0.55)]">
             <div className="overflow-hidden rounded-[1.2rem] bg-[#0c0c0e] sm:rounded-[1.5rem]">
               {/* Status bar */}
@@ -77,7 +77,7 @@ export function HeroPhoneMockup() {
                       Perintah ON / OFF ke EA
                     </p>
                   </div>
-                  <div className="relative flex h-7 w-14 shrink-0 items-center justify-end rounded-full border border-emerald-500/40 bg-emerald-500/15 p-0.5 sm:h-8 sm:w-16">
+                  <div className="relative flex h-7 w-14 shrink-0 items-center justify-end rounded-lg border border-emerald-500/40 bg-emerald-500/15 p-0.5 sm:h-8 sm:w-16">
                     <span className="absolute left-1.5 text-[7px] font-bold tracking-wide text-emerald-400 sm:left-2 sm:text-[8px]">
                       ON
                     </span>
@@ -91,13 +91,10 @@ export function HeroPhoneMockup() {
                   <div className="flex items-start justify-between gap-2 border-b border-zinc-800/80 px-2 py-1.5 sm:px-2.5 sm:py-2">
                     <div className="min-w-0">
                       <p className="text-[10px] font-semibold text-zinc-100 sm:text-[11px]">
-                        Kontrol
-                      </p>
-                      <p className="mt-0.5 text-[8px] leading-snug text-zinc-500 sm:text-[8.5px]">
-                        Pause, reset, arah entry, dan mode
+                        EA Kontroler
                       </p>
                     </div>
-                    <span className="inline-flex h-[18px] shrink-0 items-center gap-0.5 rounded-md border border-zinc-700 px-1 text-[7px] font-semibold text-zinc-300 sm:h-5 sm:gap-1 sm:px-1.5 sm:text-[8px]">
+                    <span className="inline-flex h-4.5 shrink-0 items-center gap-0.5 rounded-md border border-zinc-700 px-1 text-[7px] font-semibold text-zinc-300 sm:h-5 sm:gap-1 sm:px-1.5 sm:text-[8px]">
                       <ScrollTextIcon className="size-2 sm:size-2.5" />
                       Logs
                     </span>
@@ -114,35 +111,31 @@ export function HeroPhoneMockup() {
                   </div>
                 </div>
 
-                <div className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/80 sm:rounded-xl">
-                  <div className="flex items-center justify-between gap-2 border-b border-zinc-800/80 px-2 py-1.5 sm:px-2.5 sm:py-2">
+                <div className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/80 sm:rounded-lg">
+                  <div className="flex items-center justify-between gap-2 px-2 py-1.5 sm:px-2.5 sm:py-2">
                     <div className="flex items-center gap-1.5">
-                      <span className="size-1.5 rounded-full bg-emerald-400" />
+                      <span className="size-1.5 rounded-lg bg-emerald-400" />
                       <p className="text-[10px] font-semibold text-zinc-100 sm:text-[11px]">
-                        Detail Account
+                        Snapshot
                       </p>
                     </div>
                     <div className="flex gap-0.5 sm:gap-1">
-                      <span className="inline-flex h-[18px] items-center gap-0.5 rounded-md border border-zinc-700 px-1 text-[7px] font-semibold text-zinc-300 sm:h-5 sm:gap-1 sm:px-1.5 sm:text-[8px]">
+                      <span className="inline-flex h-4.5 items-center gap-0.5 rounded-md border border-zinc-700 px-1 text-[7px] font-semibold text-zinc-300 sm:h-5 sm:gap-1 sm:px-1.5 sm:text-[8px]">
                         <CalculatorIcon className="size-2 sm:size-2.5" />
                         Simulasi
                       </span>
-                      <span className="inline-flex h-[18px] items-center gap-0.5 rounded-md border border-zinc-700 px-1 text-[7px] font-semibold text-zinc-300 sm:h-5 sm:gap-1 sm:px-1.5 sm:text-[8px]">
+                      <span className="inline-flex h-4.5 items-center gap-0.5 rounded-md border border-zinc-700 px-1 text-[7px] font-semibold text-zinc-300 sm:h-5 sm:gap-1 sm:px-1.5 sm:text-[8px]">
                         <SettingsIcon className="size-2 sm:size-2.5" />
                         Setting
                       </span>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-px bg-zinc-800/40">
-                    <MockStat label="Float" value="-82.40" tone="loss" />
-                    <MockStat label="Daily" value="124.50" tone="profit" />
                   </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 border-t border-zinc-800/80 pb-1.5 pt-1 sm:pb-2.5 sm:pt-1.5">
                 <NavItem icon={HomeIcon} label="Home" />
-                <NavItem icon={MonitorSmartphoneIcon} label="Account" active />
+                <NavItem icon={MonitorSmartphoneIcon} label="Akun" active />
                 <NavItem icon={UserIcon} label="Profile" />
               </div>
             </div>
@@ -215,35 +208,6 @@ function FloatCard({
           </p>
         </div>
       </div>
-    </div>
-  );
-}
-
-function MockStat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone?: "profit" | "loss";
-}) {
-  return (
-    <div className="bg-[#0c0c0e] px-2 py-1.5 text-center sm:py-2.5">
-      <p className="text-[7px] font-medium uppercase tracking-[0.12em] text-zinc-500 sm:text-[8px]">
-        {label}
-      </p>
-      <p
-        className={
-          tone === "profit"
-            ? "mt-0.5 text-[10px] font-semibold tabular-nums text-emerald-400 sm:text-[11px]"
-            : tone === "loss"
-              ? "mt-0.5 text-[10px] font-semibold tabular-nums text-red-400 sm:text-[11px]"
-              : "mt-0.5 text-[10px] font-semibold tabular-nums text-zinc-100 sm:text-[11px]"
-        }
-      >
-        {value}
-      </p>
     </div>
   );
 }

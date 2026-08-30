@@ -681,7 +681,7 @@ export function AccountsTable({
             <DataTableSearch
               value={filter}
               onChange={setFilter}
-              placeholder="Cari member, label, Terminal ID, atau kode referral…"
+              placeholder="Cari member, label, ID Trading, atau kode referral…"
             />
             <div className="flex shrink-0 items-center gap-2">
               <DataTableColumnToggle table={table} />
@@ -787,7 +787,7 @@ export function AccountsTable({
       ) : null}
 
       <Dialog open={viewRow !== null} onOpenChange={(open) => !open && closeView()}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-106.25">
           <DialogHeader>
             <DialogTitle>Detail Akun</DialogTitle>
           </DialogHeader>
@@ -1040,7 +1040,7 @@ export function AccountsTable({
         open={revealedKey !== null}
         onOpenChange={(open) => !open && setRevealedKey(null)}
       >
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-106.25">
           <DialogHeader>
             <DialogTitle>API Key</DialogTitle>
             <DialogDescription>

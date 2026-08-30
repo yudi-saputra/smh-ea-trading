@@ -1,8 +1,16 @@
 import { redirect } from "next/navigation";
 import { getSessionMember } from "@/lib/auth-member";
 import { prisma } from "@/lib/db";
-import { MemberAccountCard } from "@/components/member/account-card";
-import { expiryStatus, formatExpiryDate } from "@/lib/expiry";
+import {
+  MemberAccountCard,
+  MemberAccountsEmpty,
+} from "@/components/member/account-card";
+import { MemberAutoRefresh } from "@/components/member/auto-refresh";
+import {
+  expiryStatus,
+  formatExpiryYmdLabel,
+  toExpiryDateInput,
+} from "@/lib/expiry";
 import { isTerminalOnline } from "@/lib/terminal-live";
 import type { Metadata } from "next";
 
@@ -20,20 +28,10 @@ export default async function MemberAccountPage() {
 
   return (
     <div className="space-y-5">
-      <div className="space-y-1">
-        <h2 className="type-display">Daftar Akun</h2>
-        <p className="type-ui text-muted-foreground">
-          Pantau status dan performa EA Anda secara Real Time
-        </p>
-      </div>
+      <MemberAutoRefresh everyMs={15000} />
 
       {terminals.length === 0 ? (
-        <div className="rounded-2xl border border-border bg-card px-4 py-12 text-center">
-          <p className="type-ui font-medium">Belum ada akun</p>
-          <p className="type-caption mt-1 text-muted-foreground">
-            Hubungi admin untuk menambahkan akun ke profil Anda.
-          </p>
-        </div>
+        <MemberAccountsEmpty className="rounded-2xl border border-border/80 bg-card" />
       ) : (
         <ul className="space-y-3">
           {terminals.map((t) => {
@@ -47,15 +45,18 @@ export default async function MemberAccountPage() {
                     terminalId: t.terminalId,
                     online: isTerminalOnline(t.lastSeenAt),
                     status: t.snapshot?.status ?? "—",
-                    balance:
-                      t.snapshot?.balance != null
-                        ? String(t.snapshot.balance)
+                    equity:
+                      t.snapshot?.equity != null
+                        ? String(t.snapshot.equity)
                         : null,
                     dailyPnl:
                       t.snapshot?.dailyPnl != null
                         ? String(t.snapshot.dailyPnl)
                         : null,
-                    expiresLabel: formatExpiryDate(t.expiresAt),
+                    // en-CA (YYYY-MM-DD) is for admin sorting, not for members.
+                    expiresLabel: formatExpiryYmdLabel(
+                      toExpiryDateInput(t.expiresAt),
+                    ),
                     expiryState: exp.label,
                   }}
                 />

@@ -4,32 +4,29 @@ import {
   ArrowRightIcon,
   CalculatorIcon,
   MonitorSmartphoneIcon,
-  ZapIcon,
 } from "lucide-react";
 import {
   getSessionMember,
 } from "@/lib/auth-member";
 import { prisma } from "@/lib/db";
 import { cn } from "@/lib/utils";
+import { expiryStatus } from "@/lib/expiry";
+import { formatMoney, formatMoneySigned } from "@/lib/money";
+import { whatsappLink } from "@/lib/contact";
 import {
   isForexWeekendClosed,
   isTerminalOnline,
 } from "@/lib/terminal-live";
 import { MarketClosedAlert } from "@/components/member/market-closed-alert";
-import { BalanceCard } from "@/components/member/balance-card";
+import { MemberAutoRefresh } from "@/components/member/auto-refresh";
+import { MemberAccountsEmpty } from "@/components/member/account-card";
+import { memberEaStatus } from "@/lib/ea-status";
+import { MemberSummaryCard } from "@/components/member/summary-card";
 import { HomeBanner } from "@/components/member/home-banner";
 import { getHomeBannerConfig } from "@/lib/home-banners";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Home" };
-
-function formatNum(value: number | null | undefined) {
-  if (value == null || Number.isNaN(value)) return "0";
-  return value.toLocaleString("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  });
-}
+export const metadata: Metadata = { title: "Beranda" };
 
 function pnlTone(value: number | null | undefined) {
   if (value == null || value === 0 || Number.isNaN(value)) {
@@ -53,84 +50,159 @@ export default async function MemberHomePage() {
     const s = t.snapshot?.status?.toLowerCase();
     return s === "on" || s === "paused";
   }).length;
+  const expiredCount = terminals.filter(
+    (t) => expiryStatus(t.expiresAt).label === "expired",
+  ).length;
 
-  const totalBalance = terminals.reduce((sum, t) => {
-    const n = t.snapshot?.balance != null ? Number(t.snapshot.balance) : NaN;
-    return Number.isNaN(n) ? sum : sum + n;
-  }, 0);
-  const totalPnl = terminals.reduce((sum, t) => {
-    const n = t.snapshot?.dailyPnl != null ? Number(t.snapshot.dailyPnl) : NaN;
-    return Number.isNaN(n) ? sum : sum + n;
-  }, 0);
-  const hasSnapshot = terminals.some((t) => t.snapshot != null);
+  // Sum only reported figures; no EA report at all stays null, never 0.
+  // Number(null) is 0, so missing values must be dropped before converting.
+  const sumReported = (pick: (t: (typeof terminals)[number]) => unknown) => {
+    const nums = terminals
+      .map(pick)
+      .filter((v) => v != null)
+      .map(Number)
+      .filter(Number.isFinite);
+    return nums.length > 0 ? nums.reduce((a, b) => a + b, 0) : null;
+  };
+
+  // Equity, not balance: it includes floating, and the rows below show equity.
+  const totalEquity = sumReported((t) => t.snapshot?.equity);
+  const totalPnl = sumReported((t) => t.snapshot?.dailyPnl);
   const growthPct =
-    hasSnapshot && totalBalance > 0 ? (totalPnl / totalBalance) * 100 : null;
+    totalEquity != null && totalEquity > 0 && totalPnl != null
+      ? (totalPnl / totalEquity) * 100
+      : null;
 
   const displayName = member.name.trim() || member.email.split("@")[0] || "Member";
   const recent = terminals.slice(0, 3);
   const banner = await getHomeBannerConfig();
 
-  const stats = [
-    {
-      label: "Total Akun",
-      value: terminals.length,
-      icon: MonitorSmartphoneIcon,
-    },
-    {
-      label: "Akun Aktif",
-      value: eaOn,
-      icon: ZapIcon,
-    },
-  ] as const;
+  const accountSummary =
+    terminals.length === 0
+      ? "Belum ada akun terdaftar."
+      : [
+          `${eaOn} dari ${terminals.length} akun aktif`,
+          expiredCount > 0 ? `${expiredCount} kedaluwarsa` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
 
   return (
     <div className="space-y-6">
+      <MemberAutoRefresh everyMs={15000} />
+
       <div className="space-y-1">
         <h2 className="type-display">
-          Hallo, {displayName}
+          Halo, {displayName}
         </h2>
         <p className="type-ui text-muted-foreground">
-          Ringkasan performa EA dari akun anda.
+          Ringkasan performa EA dari akun Anda.
         </p>
       </div>
 
       {isForexWeekendClosed() ? <MarketClosedAlert /> : null}
 
-      <div className="space-y-4">
-        <BalanceCard
-          name={displayName}
-          balance={hasSnapshot ? formatNum(totalBalance) : "0"}
-          pnl={hasSnapshot ? formatNum(totalPnl) : "0"}
-          pnlValue={hasSnapshot ? totalPnl : 0}
-          growthPct={growthPct}
-        />
+      <MemberSummaryCard
+        equity={formatMoney(totalEquity)}
+        pnl={formatMoneySigned(totalPnl)}
+        pnlValue={totalPnl}
+        growthPct={growthPct}
+      />
 
-        <div className="relative z-10 grid grid-cols-2 gap-2.5">
-          {stats.map((item) => {
-            const Icon = item.icon;
-            return (
-              <div
-                key={item.label}
-                className="rounded-2xl border border-border/80 bg-linear-to-t from-primary/5 to-card px-3.5 py-4 shadow-xs"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="type-label tracking-[0.12em] text-muted-foreground">
-                    {item.label}
-                  </p>
-                  <Icon className="size-3.5 text-muted-foreground" aria-hidden />
-                </div>
-                <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight md:text-3xl">
-                  {item.value}
-                </p>
-              </div>
-            );
-          })}
+      <section className="overflow-hidden rounded-2xl border border-border/80 bg-card">
+        <div className="flex items-start justify-between gap-3 px-4 py-3.5">
+          <div className="min-w-0">
+            <h3 className="type-ui font-semibold tracking-tight">
+              Daftar Akun
+            </h3>
+            <p className="type-caption mt-0.5 text-muted-foreground">
+              {accountSummary}
+            </p>
+          </div>
+          {terminals.length > 0 ? (
+            <Link
+              href="/member/account"
+              className="type-caption inline-flex shrink-0 items-center gap-1 rounded-lg border border-border px-3 py-1.5 font-medium transition-colors outline-none hover:bg-accent/40 focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              Lihat semua
+              <ArrowRightIcon className="size-3.5" aria-hidden />
+            </Link>
+          ) : null}
         </div>
-      </div>
+
+        {terminals.length === 0 ? (
+          <MemberAccountsEmpty className="border-t border-border/60" />
+        ) : (
+          <ul>
+            {recent.map((t) => {
+              const equity =
+                t.snapshot?.equity != null ? Number(t.snapshot.equity) : null;
+              const dailyPnl =
+                t.snapshot?.dailyPnl != null
+                  ? Number(t.snapshot.dailyPnl)
+                  : null;
+              const ea = memberEaStatus(
+                isTerminalOnline(t.lastSeenAt),
+                t.snapshot?.status,
+                expiryStatus(t.expiresAt).label === "expired",
+              );
+
+              return (
+                <li key={t.id} className="border-t border-border/60">
+                  <Link
+                    href={`/member/account/${t.id}`}
+                    className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/20 focus-visible:bg-accent/20 focus-visible:outline-none active:bg-accent/30"
+                  >
+                    <span
+                      className={cn(
+                        "flex size-10 shrink-0 items-center justify-center rounded-xl",
+                        ea.tile,
+                      )}
+                      aria-hidden
+                    >
+                      <MonitorSmartphoneIcon
+                        className={cn("size-4.5", ea.text)}
+                      />
+                    </span>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="type-ui truncate font-semibold tabular-nums tracking-tight">
+                        {t.terminalId}
+                      </p>
+                      <p
+                        className={cn(
+                          "type-micro mt-0.5 font-medium uppercase tracking-wide",
+                          ea.text,
+                        )}
+                      >
+                        {ea.label.toUpperCase()}
+                      </p>
+                    </div>
+
+                    <div className="shrink-0 text-right">
+                      <p className="type-ui font-semibold tabular-nums tracking-tight">
+                        {formatMoney(equity)}
+                      </p>
+                      <p
+                        className={cn(
+                          "type-caption mt-0.5 tabular-nums",
+                          pnlTone(dailyPnl),
+                        )}
+                      >
+                        {formatMoneySigned(dailyPnl)}
+                      </p>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       <Link
         href="/member/tools/simulasi"
-        className="flex items-center gap-3 rounded-2xl border border-border/80 bg-card px-4 py-3.5 active:bg-accent/30"
+        className="flex items-center gap-3 rounded-2xl border border-border/80 bg-card px-4 py-3.5 transition-colors outline-none hover:bg-accent/20 focus-visible:ring-3 focus-visible:ring-ring/50 active:bg-accent/30"
       >
         <div className="min-w-0 flex-1">
           <p className="type-ui font-medium">Simulasi Lot & Modal</p>
@@ -146,95 +218,20 @@ export default async function MemberHomePage() {
         </span>
       </Link>
 
-      <section className="space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="type-ui font-semibold tracking-tight">
-              Daftar Akun
-            </h3>
-            <p className="type-caption mt-0.5 text-muted-foreground">
-              Akun terbaru Anda.
-            </p>
-          </div>
-          {terminals.length > 0 ? (
-            <Link
-              href="/member/account"
-              className="type-caption inline-flex shrink-0 items-center gap-1 rounded-lg border border-border px-3 py-1.5 font-medium transition-colors hover:bg-accent/40"
-            >
-              Lihat semua
-              <ArrowRightIcon className="size-3.5" aria-hidden />
-            </Link>
-          ) : null}
-        </div>
-
-        {terminals.length === 0 ? (
-          <div className="rounded-2xl border border-border/80 bg-card px-4 py-10 text-center">
-            <p className="type-ui font-medium">Belum ada akun</p>
-            <p className="type-caption mt-1 text-muted-foreground">
-              Hubungi admin untuk menambahkan akun ke profil Anda.
-            </p>
-          </div>
-        ) : (
-          <ul className="overflow-hidden rounded-2xl border border-border/80 bg-card">
-            {recent.map((t, index) => {
-              const equity =
-                t.snapshot?.equity != null ? Number(t.snapshot.equity) : null;
-              const dailyPnl =
-                t.snapshot?.dailyPnl != null
-                  ? Number(t.snapshot.dailyPnl)
-                  : null;
-
-              return (
-                <li
-                  key={t.id}
-                  className={cn(index > 0 && "border-t border-border/60")}
-                >
-                  <Link
-                    href={`/member/account/${t.id}`}
-                    className="flex items-center gap-3 px-4 py-3.5 transition-colors active:bg-accent/30"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="type-ui truncate font-semibold tracking-tight">
-                        {t.name}
-                      </p>
-                      <p className="type-caption mt-0.5 truncate font-mono text-muted-foreground">
-                        {t.terminalId}
-                      </p>
-                    </div>
-
-                    <div className="shrink-0 text-right">
-                      <p className="type-ui font-semibold tabular-nums tracking-tight">
-                        {formatNum(equity)}
-                      </p>
-                      <p
-                        className={cn(
-                          "type-caption mt-0.5 tabular-nums",
-                          pnlTone(dailyPnl),
-                        )}
-                      >
-                        PnL {formatNum(dailyPnl)}
-                      </p>
-                    </div>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
       <HomeBanner slides={banner.slides} intervalSec={banner.intervalSec} />
 
       <Link
-        href="https://wa.me/6285691418661?text=Halo%20Admin%20SMH,%0A%0ASaya%20mengalami%20kendala%20pada%20EA%20SMH%20dan%20membutuhkan%20bantuan%20untuk%20pengecekan%20serta%20penyelesaiannya.%0A%0AMohon%20bantuannya.%20Terima%20kasih."
+        href={whatsappLink(
+          "Halo Admin SMH,\n\nSaya mengalami kendala pada EA SMH dan membutuhkan bantuan untuk pengecekan serta penyelesaiannya.\n\nMohon bantuannya. Terima kasih.",
+        )}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-3 rounded-2xl border border-border/80 bg-card px-4 py-3.5 active:bg-accent/30"
+        className="flex items-center gap-3 rounded-2xl border border-border/80 bg-card px-4 py-3.5 transition-colors outline-none hover:bg-accent/20 focus-visible:ring-3 focus-visible:ring-ring/50 active:bg-accent/30"
       >
         <div className="min-w-0 flex-1">
           <p className="type-ui font-medium">Butuh Bantuan?</p>
           <p className="type-caption mt-0.5 text-muted-foreground">
-            Support kami siap membantu anda.
+            Support kami siap membantu Anda.
           </p>
         </div>
         <span

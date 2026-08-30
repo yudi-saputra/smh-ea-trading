@@ -1,28 +1,26 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeftIcon } from "lucide-react";
 import {
   getSessionMember,
   getTerminalForMember,
 } from "@/lib/auth-member";
 import { MemberAccountControls } from "@/components/member/account-controls";
+import { MemberAutoRefresh } from "@/components/member/auto-refresh";
 import { EaLogs } from "@/components/member/ea-logs";
 import { MemberAccountPowerSwitch } from "@/components/member/account-power-switch";
 import { MemberAccountSettings } from "@/components/member/account-settings";
-import { MemberDetailAccount } from "@/components/member/detail-account";
+import { MemberAccountDetail } from "@/components/member/account-detail";
 import { prisma } from "@/lib/db";
+import {
+  expiryStatus,
+  formatExpiryYmdLabel,
+  toExpiryDateInput,
+} from "@/lib/expiry";
 import { isTerminalOnline } from "@/lib/terminal-live";
 import type { Metadata } from "next";
 
 type Props = { params: Promise<{ id: string }> };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const member = await getSessionMember();
-  if (!member) return { title: "Akun" };
-  const { id } = await params;
-  const terminal = await getTerminalForMember(member, id);
-  return { title: terminal?.name ?? "Akun" };
-}
+export const metadata: Metadata = { title: "Detail Akun" };
 
 export default async function MemberAccountDetailPage({ params }: Props) {
   const member = await getSessionMember();
@@ -32,6 +30,8 @@ export default async function MemberAccountDetailPage({ params }: Props) {
   if (!terminal) notFound();
 
   const online = isTerminalOnline(terminal.lastSeenAt);
+  const exp = expiryStatus(terminal.expiresAt);
+  const expired = exp.label === "expired";
 
   const commands = await prisma.command.findMany({
     where: { terminalId: terminal.id },
@@ -66,15 +66,13 @@ export default async function MemberAccountDetailPage({ params }: Props) {
         positions: raw.positions,
         buy: raw.buy,
         sell: raw.sell,
-        mode: raw.mode,
-        entryMode: raw.entryMode,
       }
     : null;
 
   const settings = (
     <MemberAccountSettings
       terminalId={terminal.id}
-      enabled={terminal.enabled && online}
+      enabled={terminal.enabled && online && !expired}
       values={{
         layer: raw?.layer?.toString() ?? null,
         multiplier: raw?.multiplier?.toString() ?? null,
@@ -94,38 +92,23 @@ export default async function MemberAccountDetailPage({ params }: Props) {
 
   return (
     <div className="space-y-5">
-      <header className="flex min-h-14 items-center gap-3">
-        <div className="min-w-0 flex-1 space-y-1.5">
-          <h2 className="type-display truncate leading-snug">
-            {terminal.name}
-          </h2>
-          <p className="type-body-sm leading-none text-muted-foreground">
-            Terminal ID :{" "}
-            <span className="text-foreground/90">{terminal.terminalId}</span>
-          </p>
-        </div>
-        <Link
-          href="/member/account"
-          aria-label="Kembali ke daftar akun"
-          className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/80 bg-card text-muted-foreground transition-colors active:bg-accent/40"
-        >
-          <ArrowLeftIcon className="size-4" />
-        </Link>
-      </header>
+      <MemberAutoRefresh />
 
       <MemberAccountPowerSwitch
         terminalId={terminal.id}
         enabled={terminal.enabled}
         status={snap?.status}
         online={online}
+        expired={expired}
       />
 
       <MemberAccountControls
         terminalId={terminal.id}
         enabled={terminal.enabled && online}
+        expired={expired}
         status={online ? snap?.status : "off"}
-        mode={snap?.mode}
-        entryMode={snap?.entryMode}
+        mode={raw?.mode}
+        entryMode={raw?.entryMode}
         logs={
           <EaLogs
             logs={commands.map((c) => ({
@@ -139,9 +122,16 @@ export default async function MemberAccountDetailPage({ params }: Props) {
         }
       />
 
-      <MemberDetailAccount
+      <MemberAccountDetail
         snap={snap}
         online={online}
+        expired={expired}
+        name={terminal.name}
+        idTrading={terminal.terminalId}
+        expiresLabel={formatExpiryYmdLabel(
+          toExpiryDateInput(terminal.expiresAt),
+        )}
+        expiryState={exp.label}
         settings={settings}
         simHref={`/member/tools/simulasi?${new URLSearchParams({
           ...(raw?.layer != null ? { layer: String(raw.layer) } : {}),
@@ -156,8 +146,8 @@ export default async function MemberAccountDetailPage({ params }: Props) {
             ? { lotInc: hbNum("lot_increment")! }
             : {}),
           ...(raw?.maxLot != null ? { maxLot: String(raw.maxLot) } : {}),
-          ...(snap?.mode != null
-            ? { mode: snap.mode === 1 ? "aggressive" : "conservative" }
+          ...(raw?.mode != null
+            ? { mode: raw.mode === 1 ? "aggressive" : "conservative" }
             : {}),
         }).toString()}`}
       />

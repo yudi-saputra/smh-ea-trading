@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { CalculatorIcon, SettingsIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { memberEaStatus } from "@/lib/ea-status";
+import { formatMoney, formatMoneySigned } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -24,19 +26,7 @@ type SnapshotData = {
   positions?: number | null;
   buy?: number | null;
   sell?: number | null;
-  mode?: number | null;
-  entryMode?: number | null;
 } | null;
-
-function formatNum(value: string | number | null | undefined) {
-  if (value == null || value === "") return "—";
-  const n = typeof value === "number" ? value : Number(value);
-  if (Number.isNaN(n)) return String(value);
-  return n.toLocaleString("en-US", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  });
-}
 
 function pnlClass(value: string | number | null | undefined) {
   if (value == null || value === "") return "text-foreground";
@@ -45,41 +35,49 @@ function pnlClass(value: string | number | null | undefined) {
   return n > 0 ? "text-trading-profit" : "text-trading-loss";
 }
 
-export function MemberDetailAccount({
+function countPair(a: number | null | undefined, b: number | null | undefined) {
+  if (a == null && b == null) return "—";
+  return `${a ?? "—"} / ${b ?? "—"}`;
+}
+
+export function MemberAccountDetail({
   snap,
   online = true,
+  expired = false,
+  name,
+  idTrading,
+  expiresLabel,
+  expiryState,
   settings,
   simHref,
 }: {
   snap: SnapshotData | null;
   online?: boolean;
+  expired?: boolean;
+  name: string;
+  idTrading?: string | null;
+  expiresLabel: string;
+  expiryState: "none" | "active" | "expiring" | "expired";
   settings?: React.ReactNode;
   simHref?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const balance = snap?.balance ?? null;
-  const floatPnl = snap?.floatPnl ?? null;
-  const dailyPnl = snap?.dailyPnl ?? null;
-
-  const modeLabel =
-    snap?.mode == null ? "—" : snap.mode === 1 ? "Aggressive" : "Conservative";
-  const entryLabel =
-    snap?.entryMode == null ? "—" : snap.entryMode === 1 ? "1 Arah" : "2 Arah";
-  const isOn = online && snap?.status?.toLowerCase() === "on";
+  const ea = memberEaStatus(online, snap?.status, expired);
 
   return (
     <section className="overflow-hidden rounded-2xl border border-border bg-card">
-      <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <span
-            className={cn(
-              "size-2 shrink-0 rounded-full",
-              isOn ? "bg-trading-profit" : "bg-muted-foreground/50",
-            )}
-            aria-label={isOn ? "ON" : "OFF"}
-          />
-          <h3 className="type-ui truncate font-semibold">Detail Account</h3>
+      <div className="flex items-center gap-3 border-b border-border/60 px-4 py-3.5">
+        <div className="min-w-0 flex-1">
+          <p className="type-title truncate">{name}</p>
+          <p className="type-caption mt-0.5 truncate tabular-nums text-muted-foreground">
+            {idTrading?.trim() || "—"}
+          </p>
         </div>
+        <span
+          className={cn("type-label shrink-0 rounded-full px-2 py-1", ea.pill)}
+        >
+          {ea.label}
+        </span>
         <div className="flex shrink-0 items-center gap-1.5">
           {simHref ? (
             <Button
@@ -111,43 +109,58 @@ export function MemberDetailAccount({
 
       {!snap ? (
         <div className="type-caption px-4 py-8 text-center text-muted-foreground">
-          Belum ada snapshot. Tunggu heartbeat Controller.
+          Belum ada snapshot, mohon tunggu beberapa saat.
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-px border-b border-border/50 bg-border/40">
+          <div className="px-4 py-4">
+            <p className="type-label text-muted-foreground">Equity</p>
+            <p className="type-display mt-1 truncate tabular-nums">
+              {formatMoney(snap.equity)}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-px border-y border-border/50 bg-border/40">
             <HeroStat
               label="Float"
-              value={formatNum(floatPnl)}
-              valueClass={pnlClass(floatPnl)}
+              value={formatMoneySigned(snap.floatPnl)}
+              valueClass={pnlClass(snap.floatPnl)}
             />
             <HeroStat
-              label="Daily"
-              value={formatNum(dailyPnl)}
-              valueClass={pnlClass(dailyPnl)}
+              label="PnL"
+              value={formatMoneySigned(snap.dailyPnl)}
+              valueClass={pnlClass(snap.dailyPnl)}
             />
           </div>
 
-          <div className="space-y-4 px-4 py-4">
-            <Group title="Account">
-              <Metric label="Balance" value={formatNum(balance)} />
-              <Metric
-                label="Positions"
-                value={snap.positions?.toString() ?? "—"}
-              />
-              <Metric
-                label="Buy / Sell"
-                value={`${snap.buy ?? 0} / ${snap.sell ?? 0}`}
-              />
-            </Group>
-
-            <Group title="Strategy">
-              <Metric label="Mode" value={modeLabel} />
-              <Metric label="Entry" value={entryLabel} />
-            </Group>
-          </div>
+          <dl className="divide-y divide-border/50 px-4">
+            <Metric label="Balance" value={formatMoney(snap.balance)} />
+            <Metric
+              label="Positions"
+              value={snap.positions?.toString() ?? "—"}
+            />
+            <Metric
+              label="Buy / Sell"
+              value={countPair(snap.buy, snap.sell)}
+            />
+          </dl>
         </>
       )}
+
+      <div className="flex items-center justify-between gap-3 border-t border-border/50 bg-muted/30 px-4 py-2.5">
+        <span className="type-caption text-muted-foreground">
+          {expired ? "Kedaluwarsa" : "Masa aktif"}
+        </span>
+        <span
+          className={cn(
+            "type-caption truncate font-medium",
+            expired && "text-trading-loss",
+            expiryState === "expiring" && "text-trading-gold",
+          )}
+        >
+          {expiresLabel}
+        </span>
+      </div>
 
       {settings ? (
         <Drawer open={open} onOpenChange={setOpen}>
@@ -155,7 +168,7 @@ export function MemberDetailAccount({
             <DrawerHeader className="text-left">
               <DrawerTitle>Settings</DrawerTitle>
               <DrawerDescription>
-                Atur parameter tambahan EA Trading anda
+                Atur parameter tambahan EA Trading Anda
               </DrawerDescription>
             </DrawerHeader>
             <div className="overflow-y-auto px-4 pb-6">{settings}</div>
@@ -176,35 +189,18 @@ function HeroStat({
   valueClass?: string;
 }) {
   return (
-    <div className="bg-card px-3 py-3.5 text-center">
-      <p className="type-label tracking-[0.12em] text-muted-foreground">
-        {label}
+    <div className="bg-card px-4 py-3">
+      <p className="type-label text-muted-foreground">{label}</p>
+      <p className={cn("type-title mt-1 truncate tabular-nums", valueClass)}>
+        {value}
       </p>
-      <p className={cn("type-title mt-1 tabular-nums", valueClass)}>{value}</p>
-    </div>
-  );
-}
-
-function Group({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <p className="type-label mb-2 text-muted-foreground">{title}</p>
-      <div className="overflow-hidden rounded-xl border border-border/60">
-        <dl className="divide-y divide-border/50">{children}</dl>
-      </div>
     </div>
   );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-3 px-3 py-2.5">
+    <div className="flex items-center justify-between gap-3 py-2.5">
       <dt className="type-body-sm text-muted-foreground">{label}</dt>
       <dd className="type-body-sm truncate text-right font-medium tabular-nums text-foreground">
         {value}

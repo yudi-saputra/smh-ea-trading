@@ -151,10 +151,10 @@ export async function POST(req: Request) {
       (typeof body.terminalId === "string" ? body.terminalId.trim() : "") ||
       owner.idTrading.trim();
     if (!terminalId) {
-      return jsonError("Terminal ID wajib diisi", 400);
+      return jsonError("ID Trading wajib diisi", 400);
     }
     if (!TERMINAL_ID_RE.test(terminalId)) {
-      return jsonError("Terminal ID harus berupa [A-Za-z0-9_-]", 400);
+      return jsonError("ID Trading harus berupa [A-Za-z0-9_-]", 400);
     }
 
     const passwordRaw =
