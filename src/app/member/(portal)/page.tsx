@@ -3,13 +3,11 @@ import { redirect } from "next/navigation";
 import {
   ArrowRightIcon,
   CalculatorIcon,
-  MonitorSmartphoneIcon,
 } from "lucide-react";
 import {
   getSessionMember,
 } from "@/lib/auth-member";
 import { prisma } from "@/lib/db";
-import { cn } from "@/lib/utils";
 import { expiryStatus } from "@/lib/expiry";
 import { formatMoney, formatMoneySigned } from "@/lib/money";
 import { whatsappLink } from "@/lib/contact";
@@ -20,20 +18,13 @@ import {
 import { MarketClosedAlert } from "@/components/member/market-closed-alert";
 import { MemberAutoRefresh } from "@/components/member/auto-refresh";
 import { MemberAccountsEmpty } from "@/components/member/account-card";
-import { memberEaStatus } from "@/lib/ea-status";
+import { MemberHomeAccountRow } from "@/components/member/member-home-account-row";
 import { MemberSummaryCard } from "@/components/member/summary-card";
 import { HomeBanner } from "@/components/member/home-banner";
 import { getHomeBannerConfig } from "@/lib/home-banners";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Beranda" };
-
-function pnlTone(value: number | null | undefined) {
-  if (value == null || value === 0 || Number.isNaN(value)) {
-    return "text-muted-foreground";
-  }
-  return value > 0 ? "text-trading-profit" : "text-trading-loss";
-}
 
 export default async function MemberHomePage() {
   const member = await getSessionMember();
@@ -141,58 +132,20 @@ export default async function MemberHomePage() {
                 t.snapshot?.dailyPnl != null
                   ? Number(t.snapshot.dailyPnl)
                   : null;
-              const ea = memberEaStatus(
-                isTerminalOnline(t.lastSeenAt),
-                t.snapshot?.status,
-                expiryStatus(t.expiresAt).label === "expired",
-              );
+              const expired = expiryStatus(t.expiresAt).label === "expired";
 
               return (
                 <li key={t.id} className="border-t border-border/60">
-                  <Link
+                  <MemberHomeAccountRow
+                    id={t.id}
+                    terminalId={t.terminalId}
+                    online={isTerminalOnline(t.lastSeenAt)}
+                    status={t.snapshot?.status}
+                    expired={expired}
+                    equity={equity}
+                    dailyPnl={dailyPnl}
                     href={`/member/account/${t.id}`}
-                    className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/20 focus-visible:bg-accent/20 focus-visible:outline-none active:bg-accent/30"
-                  >
-                    <span
-                      className={cn(
-                        "flex size-10 shrink-0 items-center justify-center rounded-xl",
-                        ea.tile,
-                      )}
-                      aria-hidden
-                    >
-                      <MonitorSmartphoneIcon
-                        className={cn("size-4.5", ea.text)}
-                      />
-                    </span>
-
-                    <div className="min-w-0 flex-1">
-                      <p className="type-ui truncate font-semibold tabular-nums tracking-tight">
-                        {t.terminalId}
-                      </p>
-                      <p
-                        className={cn(
-                          "type-micro mt-0.5 font-medium uppercase tracking-wide",
-                          ea.text,
-                        )}
-                      >
-                        {ea.label.toUpperCase()}
-                      </p>
-                    </div>
-
-                    <div className="shrink-0 text-right">
-                      <p className="type-ui font-semibold tabular-nums tracking-tight">
-                        {formatMoney(equity)}
-                      </p>
-                      <p
-                        className={cn(
-                          "type-caption mt-0.5 tabular-nums",
-                          pnlTone(dailyPnl),
-                        )}
-                      >
-                        {formatMoneySigned(dailyPnl)}
-                      </p>
-                    </div>
-                  </Link>
+                  />
                 </li>
               );
             })}

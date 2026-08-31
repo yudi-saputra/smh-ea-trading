@@ -5,6 +5,10 @@ import { useEffect, useState } from "react";
 import { PowerIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isEaPowered, memberEaStatus } from "@/lib/ea-status";
+import {
+  clearEaPowerPending,
+  setEaPowerPending,
+} from "@/lib/ea-power-pending";
 
 export function MemberAccountPowerSwitch({
   terminalId,
@@ -22,13 +26,17 @@ export function MemberAccountPowerSwitch({
   const router = useRouter();
   const ea = memberEaStatus(online, status, expired);
   const serverOn = isEaPowered(ea.label);
-  const [isOn, setIsOn] = useState(serverOn);
+  const [pending, setPending] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isOn = pending ?? serverOn;
 
   useEffect(() => {
-    setIsOn(serverOn);
-  }, [serverOn]);
+    if (pending !== null && pending === serverOn) {
+      setPending(null);
+      clearEaPowerPending(terminalId);
+    }
+  }, [serverOn, pending, terminalId]);
 
   const canToggle = enabled && online && !expired && !busy;
 
@@ -37,6 +45,11 @@ export function MemberAccountPowerSwitch({
     setBusy(true);
     setError(null);
     const next = !isOn;
+    setPending(next);
+    setEaPowerPending(terminalId, next);
+    // #region agent log
+    fetch('http://127.0.0.1:7448/ingest/5685db13-3f30-461e-a4ab-70f1f7f1f9d5',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5bc4d7'},body:JSON.stringify({sessionId:'5bc4d7',location:'account-power-switch.tsx:togglePower',message:'power toggle pending set',data:{terminalId,next},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
+    // #endregion
 
     try {
       const res = await fetch(`/api/account/${terminalId}/commands`, {
@@ -46,12 +59,15 @@ export function MemberAccountPowerSwitch({
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
+        setPending(null);
+        clearEaPowerPending(terminalId);
         setError(body?.error ?? "Perintah gagal dikirim. Coba lagi.");
         return;
       }
-      setIsOn(next);
       router.refresh();
     } catch {
+      setPending(null);
+      clearEaPowerPending(terminalId);
       setError("Tidak ada koneksi. Coba lagi.");
     } finally {
       setBusy(false);
@@ -62,17 +78,7 @@ export function MemberAccountPowerSwitch({
     <section className="overflow-hidden rounded-2xl border border-border bg-card">
       <div className="flex items-center justify-between gap-4 px-4 py-3.5">
         <div className="min-w-0">
-          <div className="flex min-w-0 items-center gap-2">
-            <p className="type-ui truncate font-semibold">EA Power</p>
-            <span
-              className={cn(
-                "type-label shrink-0 rounded-full px-2 py-1",
-                ea.pill,
-              )}
-            >
-              {ea.label}
-            </span>
-          </div>
+          <p className="type-ui truncate font-semibold">EA Power</p>
           <p
             className={cn(
               "type-caption mt-0.5 leading-relaxed",

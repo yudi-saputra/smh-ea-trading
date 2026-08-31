@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { CalculatorIcon, SettingsIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { memberEaStatus } from "@/lib/ea-status";
 import { formatMoney, formatMoneySigned } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,7 +41,6 @@ function countPair(a: number | null | undefined, b: number | null | undefined) {
 
 export function MemberAccountDetail({
   snap,
-  online = true,
   expired = false,
   name,
   idTrading,
@@ -52,7 +50,6 @@ export function MemberAccountDetail({
   simHref,
 }: {
   snap: SnapshotData | null;
-  online?: boolean;
   expired?: boolean;
   name: string;
   idTrading?: string | null;
@@ -62,7 +59,6 @@ export function MemberAccountDetail({
   simHref?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const ea = memberEaStatus(online, snap?.status, expired);
 
   return (
     <section className="overflow-hidden rounded-2xl border border-border bg-card">
@@ -73,11 +69,6 @@ export function MemberAccountDetail({
             {idTrading?.trim() || "—"}
           </p>
         </div>
-        <span
-          className={cn("type-label shrink-0 rounded-full px-2 py-1", ea.pill)}
-        >
-          {ea.label}
-        </span>
         <div className="flex shrink-0 items-center gap-1.5">
           {simHref ? (
             <Button

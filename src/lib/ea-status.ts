@@ -43,13 +43,16 @@ export function memberEaStatus(
   status?: string | null,
   expired = false,
 ) {
+  const s = status?.trim().toLowerCase();
   const label: MemberEaState = expired
     ? "expired"
     : !online
       ? "offline"
-      : status?.toLowerCase() === "paused"
+      : s === "paused"
         ? "paused"
-        : "online";
+        : s === "on"
+          ? "online"
+          : "offline";
 
   return { label, ...eaTone(label) };
 }
@@ -63,6 +66,7 @@ if (process.env.NODE_ENV !== "production") {
   // Offline outranks a stale "on"; expiry outranks everything.
   const checks: [MemberEaState, MemberEaState][] = [
     [memberEaStatus(true, "on").label, "online"],
+    [memberEaStatus(true, "off").label, "offline"],
     [memberEaStatus(true, "paused").label, "paused"],
     [memberEaStatus(false, "on").label, "offline"],
     [memberEaStatus(true, "on", true).label, "expired"],
@@ -73,5 +77,8 @@ if (process.env.NODE_ENV !== "production") {
   }
   if (!isEaPowered("paused") || isEaPowered("offline")) {
     console.error("[ea-status] isEaPowered self-check failed");
+  }
+  if (isEaPowered(memberEaStatus(true, "off").label)) {
+    console.error("[ea-status] off must not read as powered");
   }
 }

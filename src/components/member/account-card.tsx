@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ChevronRightIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { memberEaStatus } from "@/lib/ea-status";
+import { MemberEaStatusBadge } from "@/components/member/member-ea-status-badge";
 import { formatMoney, formatMoneySigned } from "@/lib/money";
 
 function pnlTone(value: string | number | null | undefined) {
@@ -41,7 +41,6 @@ export function MemberAccountCard({
   account: MemberAccountCardData;
 }) {
   const expired = account.expiryState === "expired";
-  const ea = memberEaStatus(account.online, account.status, expired);
 
   return (
     <Link
@@ -55,11 +54,12 @@ export function MemberAccountCard({
             {account.terminalId}
           </p>
         </div>
-        <span
-          className={cn("type-label shrink-0 rounded-full px-2 py-1", ea.pill)}
-        >
-          {ea.label}
-        </span>
+        <MemberEaStatusBadge
+          terminalId={account.id}
+          online={account.online}
+          status={account.status}
+          expired={expired}
+        />
         <ChevronRightIcon
           className="size-4 shrink-0 text-muted-foreground/70 transition-transform group-hover:translate-x-0.5 group-active:translate-x-0.5"
           aria-hidden

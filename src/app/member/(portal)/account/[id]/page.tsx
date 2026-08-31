@@ -124,7 +124,6 @@ export default async function MemberAccountDetailPage({ params }: Props) {
 
       <MemberAccountDetail
         snap={snap}
-        online={online}
         expired={expired}
         name={terminal.name}
         idTrading={terminal.terminalId}
