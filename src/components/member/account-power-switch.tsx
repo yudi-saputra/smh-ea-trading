@@ -47,9 +47,6 @@ export function MemberAccountPowerSwitch({
     const next = !isOn;
     setPending(next);
     setEaPowerPending(terminalId, next);
-    // #region agent log
-    fetch('http://127.0.0.1:7448/ingest/5685db13-3f30-461e-a4ab-70f1f7f1f9d5',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5bc4d7'},body:JSON.stringify({sessionId:'5bc4d7',location:'account-power-switch.tsx:togglePower',message:'power toggle pending set',data:{terminalId,next},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-    // #endregion
 
     try {
       const res = await fetch(`/api/account/${terminalId}/commands`, {

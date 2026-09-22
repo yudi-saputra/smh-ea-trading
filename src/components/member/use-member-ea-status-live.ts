@@ -16,9 +16,6 @@ export function useMemberEaStatusLive(
   useEffect(() => {
     const sync = () => {
       const p = readEaPowerPending(terminalId);
-      // #region agent log
-      fetch('http://127.0.0.1:7448/ingest/5685db13-3f30-461e-a4ab-70f1f7f1f9d5',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'5bc4d7'},body:JSON.stringify({sessionId:'5bc4d7',location:'use-member-ea-status-live.ts:sync',message:'pending sync',data:{terminalId,pending:p,status},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-      // #endregion
       setPending(p);
     };
     sync();
