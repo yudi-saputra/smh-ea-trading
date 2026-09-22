@@ -1,5 +1,5 @@
 /**
- * Allowlisted terminal API payloads — never return apiKey fields or rawJson by default.
+ * Allowlisted terminal API payloads - never return apiKey fields or rawJson by default.
  */
 
 export const snapshotListSelect = {

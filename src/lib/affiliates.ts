@@ -5,7 +5,7 @@ export function normalizeAffiliateCode(raw: string) {
   return raw.trim().toUpperCase().replace(/\s+/g, "");
 }
 
-/** [A-Z0-9_-] length 2–32 after normalize. */
+/** [A-Z0-9_-] length 2-32 after normalize. */
 export const AFFILIATE_CODE_RE = /^[A-Z0-9_-]{2,32}$/;
 
 export function parseAffiliateStatus(value: unknown): AffiliateStatus | null {

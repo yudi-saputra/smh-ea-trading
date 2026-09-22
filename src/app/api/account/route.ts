@@ -23,10 +23,6 @@ import {
   snapshotListSelect,
 } from "@/lib/terminal-dto";
 
-/**
- * Shared /api/account actor order: admin (staff/super) first, then member.
- * Avoids dual-cookie cases where admin only sees their member-scoped list.
- */
 async function resolveAccountListActor() {
   const user = await getSessionUser();
   if (user && canViewAccounts(user.role)) {
@@ -194,7 +190,6 @@ export async function POST(req: Request) {
     const expiresParsed = parseExpiresAt(body.expiresAt);
     if (!expiresParsed.ok) return jsonError(expiresParsed.error);
 
-    // Unique on terminalId — race → P2002 → 409 via handleRouteError
     const apiKey = generateApiKey();
     const terminal = await prisma.terminal.create({
       data: {

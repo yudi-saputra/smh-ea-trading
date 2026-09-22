@@ -7,16 +7,18 @@ import {
   verifyPassword,
 } from "@/lib/crypto";
 import { requireUser } from "@/lib/auth";
-import { handleRouteError, jsonError, jsonOk } from "@/lib/api";
+import { handleRouteError, jsonError, jsonOk, parseJsonBody } from "@/lib/api";
 
 export async function POST(req: Request) {
   try {
     const user = await requireUser();
-    const body = (await req.json()) as {
+    const parsed = await parseJsonBody<{
       currentPassword?: string;
       newPassword?: string;
       confirmPassword?: string;
-    };
+    }>(req);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
 
     const currentPassword = body.currentPassword ?? "";
     const newPassword = body.newPassword ?? "";

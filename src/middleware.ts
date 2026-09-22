@@ -90,7 +90,7 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Shared APIs (e.g. /api/account) — either session
+  // Shared APIs (e.g. /api/account) - either session
   if (pathname.startsWith("/api/")) {
     if (userSession || memberSession) return NextResponse.next();
     return NextResponse.json(

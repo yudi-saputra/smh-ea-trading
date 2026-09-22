@@ -36,7 +36,7 @@ export type MemberEaState = "online" | "paused" | "offline" | "expired";
 
 /**
  * The one EA state every member surface renders. Expiry blocks trading, and a
- * stale snapshot can't outrank being offline — hence this order.
+ * stale snapshot can't outrank being offline - hence this order.
  */
 export function memberEaStatus(
   online: boolean,
@@ -57,7 +57,7 @@ export function memberEaStatus(
   return { label, ...eaTone(label) };
 }
 
-/** Paused EA is still powered on — the switch reflects power, not entry. */
+/** Paused EA is still powered on - the switch reflects power, not entry. */
 export function isEaPowered(state: MemberEaState) {
   return state === "online" || state === "paused";
 }

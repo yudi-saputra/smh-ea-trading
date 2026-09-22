@@ -1,4 +1,4 @@
-/** Shown when the EA has not reported a value yet — never render 0 for that. */
+/** Shown when the EA has not reported a value yet - never render 0 for that. */
 export const NO_DATA = "-";
 
 /** Trading amounts always carry 2 decimals so columns line up. */

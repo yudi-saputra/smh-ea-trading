@@ -70,7 +70,7 @@ export function handleRouteError(err: unknown) {
     return jsonError("Data sudah ada (duplikat)", 409);
   }
 
-  // Surface real cause in local/dev — "Internal server error" alone is useless.
+  // Surface real cause in local/dev - "Internal server error" alone is useless.
   if (process.env.NODE_ENV !== "production" && err instanceof Error) {
     return jsonError(err.message, 500);
   }

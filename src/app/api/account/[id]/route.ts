@@ -205,7 +205,6 @@ export async function PATCH(req: Request, { params }: Params) {
       },
     });
 
-    // fields only — never log passwordTrading / apiKey values
     await prisma.auditLog.create({
       data: {
         actorUserId: user.id,

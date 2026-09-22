@@ -55,7 +55,7 @@ export async function PATCH(req: Request, { params }: Params) {
       const code = normalizeAffiliateCode(body.code);
       if (!code) return jsonError("Kode referral wajib diisi", 400);
       if (!AFFILIATE_CODE_RE.test(code)) {
-        return jsonError("Kode harus 2–32 karakter [A-Z0-9_-]", 400);
+        return jsonError("Kode harus 2-32 karakter [A-Z0-9_-]", 400);
       }
       data.code = code;
     }

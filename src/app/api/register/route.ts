@@ -6,9 +6,27 @@ import { clientIpFromRequest } from "@/lib/session-meta";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { normalizeAffiliateCode } from "@/lib/affiliates";
 import { parsePasswordTrading } from "@/lib/password-trading";
+import { rateLimit } from "@/lib/rate-limit";
+
+const REGISTER_WINDOW_MS = 15 * 60 * 1000;
+const REGISTER_IP_LIMIT = 5;
 
 export async function POST(req: Request) {
   try {
+    const ip = clientIpFromRequest(req) ?? "unknown";
+    const ipLimit = rateLimit(
+      `register:ip:${ip}`,
+      REGISTER_IP_LIMIT,
+      REGISTER_WINDOW_MS,
+    );
+    if (!ipLimit.ok) {
+      return jsonError(
+        "Terlalu banyak percobaan pendaftaran. Coba lagi nanti.",
+        429,
+        { headers: { "Retry-After": String(ipLimit.retryAfterSec) } },
+      );
+    }
+
     const parsed = await parseJsonBody<{
       packageId?: string;
       name?: string;

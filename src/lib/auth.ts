@@ -57,7 +57,7 @@ function touchLastSeen(sessionId: string, lastSeenAt: Date | null) {
   const stale =
     !lastSeenAt || Date.now() - lastSeenAt.getTime() > LAST_SEEN_THROTTLE_MS;
   if (!stale) return;
-  // ponytail: fire-and-forget — page auth path shouldn't wait on lastSeen write
+  // fire-and-forget - page auth path shouldn't wait on lastSeen write
   void prisma.session
     .update({
       where: { id: sessionId },
@@ -223,7 +223,7 @@ export function homePathForRole(role: Role) {
 /** Terminal list scope: Super Admin + Staff see all; others match nothing. */
 export function terminalOwnerFilter(user: SessionUser) {
   if (canViewAccounts(user.role)) return {};
-  // Impossible id — never leak rows if a non-viewer calls list by mistake.
+  // Impossible id - never leak rows if a non-viewer calls list by mistake.
   return { id: "__none__" };
 }
 
@@ -238,7 +238,7 @@ export async function getTerminalForUser(
       OR: [{ id: idOrTerminalId }, { terminalId: idOrTerminalId }],
     },
     include: {
-      // no rawJson — avoid shipping heartbeat dump to admin UI/API by default
+      // no rawJson - avoid shipping heartbeat dump to admin UI/API by default
       snapshot: {
         select: {
           status: true,

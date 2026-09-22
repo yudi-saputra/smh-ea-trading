@@ -21,7 +21,7 @@ function pad2(n: number) {
 }
 
 function daysInMonth(year: number, month: number) {
-  // month: 1–12 → Date(year, month, 0) = last day of that month
+  // month: 1-12, Date(year, month, 0) = last day of that month
   return new Date(year, month, 0).getDate();
 }
 
@@ -110,7 +110,6 @@ export function expiryStatus(expiresAt: Date | null | undefined): {
   if (msLeft < 0) {
     return { label: "expired", expiresAt: iso, expiresTs: ts };
   }
-  // warn within 7 days
   if (msLeft < 7 * 24 * 60 * 60 * 1000) {
     return { label: "expiring", expiresAt: iso, expiresTs: ts };
   }
@@ -130,7 +129,6 @@ export function toExpiryDateInput(iso: string | Date | null | undefined): string
   return d.toLocaleDateString("en-CA", { timeZone: EXPIRY_TIME_ZONE });
 }
 
-// ponytail: ceil = calendar math only; upgrade = date-fns addMonths if rules get richer
 if (process.env.NODE_ENV !== "production") {
   const a = addMonthsYmd("2026-07-24", 1);
   const b = addMonthsYmd("2026-01-31", 1);

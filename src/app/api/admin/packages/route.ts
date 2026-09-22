@@ -1,7 +1,7 @@
 import { Role, PackageStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { AuthError, requireUser } from "@/lib/auth";
-import { handleRouteError, jsonError, jsonOk } from "@/lib/api";
+import { handleRouteError, jsonError, jsonOk, parseJsonBody } from "@/lib/api";
 import { parsePackageStatus } from "@/lib/packages";
 
 const packageSelect = {
@@ -36,11 +36,13 @@ export async function POST(req: Request) {
       throw new AuthError("Forbidden", 403);
     }
 
-    const body = (await req.json()) as {
+    const parsed = await parseJsonBody<{
       name?: string;
       description?: string;
       status?: PackageStatus;
-    };
+    }>(req);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
 
     const name = body.name?.trim();
     if (!name) return jsonError("Nama wajib diisi", 400);

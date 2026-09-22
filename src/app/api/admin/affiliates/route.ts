@@ -1,7 +1,7 @@
 import { Role, AffiliateStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { AuthError, requireUser } from "@/lib/auth";
-import { handleRouteError, jsonError, jsonOk } from "@/lib/api";
+import { handleRouteError, jsonError, jsonOk, parseJsonBody } from "@/lib/api";
 import {
   AFFILIATE_CODE_RE,
   normalizeAffiliateCode,
@@ -52,14 +52,16 @@ export async function POST(req: Request) {
       throw new AuthError("Forbidden", 403);
     }
 
-    const body = (await req.json()) as {
+    const parsed = await parseJsonBody<{
       code?: string;
       name?: string;
       email?: string;
       phone?: string;
       notes?: string;
       status?: AffiliateStatus;
-    };
+    }>(req);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
 
     const code = normalizeAffiliateCode(body.code ?? "");
     const name = body.name?.trim();
@@ -69,7 +71,7 @@ export async function POST(req: Request) {
 
     if (!code) return jsonError("Kode referral wajib diisi", 400);
     if (!AFFILIATE_CODE_RE.test(code)) {
-      return jsonError("Kode harus 2–32 karakter [A-Z0-9_-]", 400);
+      return jsonError("Kode harus 2-32 karakter [A-Z0-9_-]", 400);
     }
     if (!name) return jsonError("Nama wajib diisi", 400);
     if (!email) return jsonError("Email wajib diisi", 400);

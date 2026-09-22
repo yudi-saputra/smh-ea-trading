@@ -7,7 +7,7 @@ import {
   requireUser,
 } from "@/lib/auth";
 import { hashPassword } from "@/lib/crypto";
-import { handleRouteError, jsonError, jsonOk } from "@/lib/api";
+import { handleRouteError, jsonError, jsonOk, parseJsonBody } from "@/lib/api";
 
 export async function GET() {
   try {
@@ -43,12 +43,14 @@ export async function POST(req: Request) {
       throw new AuthError("Forbidden", 403);
     }
 
-    const body = (await req.json()) as {
+    const parsed = await parseJsonBody<{
       email?: string;
       password?: string;
       displayName?: string;
       role?: Role;
-    };
+    }>(req);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
 
     const email = body.email?.trim().toLowerCase();
     const password = body.password ?? "";

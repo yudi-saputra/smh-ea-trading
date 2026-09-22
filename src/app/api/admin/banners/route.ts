@@ -1,6 +1,6 @@
 import { Role } from "@prisma/client";
 import { AuthError, requireUser } from "@/lib/auth";
-import { handleRouteError, jsonError, jsonOk } from "@/lib/api";
+import { handleRouteError, jsonError, jsonOk, parseJsonBody } from "@/lib/api";
 import {
   addHomeBanner,
   listHomeBanners,
@@ -27,7 +27,10 @@ export async function PATCH(req: Request) {
       throw new AuthError("Forbidden", 403);
     }
 
-    const body = (await req.json()) as { intervalSec?: number };
+    const parsed = await parseJsonBody<{ intervalSec?: number }>(req);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
+
     if (typeof body.intervalSec !== "number") {
       return jsonError("intervalSec wajib (detik)", 400);
     }

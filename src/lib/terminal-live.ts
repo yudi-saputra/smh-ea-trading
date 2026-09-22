@@ -19,7 +19,7 @@ export function liveEaStatus(
   return s && s.length > 0 ? s : "—";
 }
 
-/** Forex typically closed Sat–Sun (WIB / Asia/Jakarta). */
+/** Forex typically closed Sat-Sun (WIB / Asia/Jakarta). */
 export function isForexWeekendClosed(now = new Date()) {
   const weekday = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Jakarta",

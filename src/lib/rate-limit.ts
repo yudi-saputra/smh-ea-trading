@@ -1,6 +1,6 @@
 /**
  * In-process sliding window rate limit.
- * ponytail: per-instance only; multi-node needs Redis/shared store.
+ * Per-instance only; multi-node needs Redis/shared store.
  */
 
 type Bucket = { count: number; resetAt: number };
