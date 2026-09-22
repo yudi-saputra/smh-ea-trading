@@ -68,9 +68,40 @@ services:
     depends_on:
       - web
 
+  # Portainer CE - Docker management UI.
+  # Accessible at https://VPS_IP:9443 (Portainer built-in HTTPS, self-signed cert).
+  # SECURITY: restrict port 9443 on your VPS firewall to trusted IPs only.
+  portainer:
+    image: portainer/portainer-ce:latest
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      - "9443:9443"
+    volumes:
+      # Docker socket access - required for Portainer to manage containers.
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+
+  # Uptime Kuma - self-hosted monitoring & status page.
+  # Accessible at http://VPS_IP:3001 (set up login on first visit).
+  # SECURITY: restrict port 3001 on your VPS firewall to trusted IPs only.
+  # Docker socket mount enables the "Docker Container" monitor type.
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    restart: unless-stopped
+    logging: *default-logging
+    ports:
+      - "3001:3001"
+    volumes:
+      # Docker socket access - required for Docker container status monitors.
+      - /var/run/docker.sock:/var/run/docker.sock
+      - uptime_kuma_data:/app/data
+
 volumes:
   postgres_data:
   app_data:
   app_banners:
   caddy_data:
   caddy_config:
+  portainer_data:
+  uptime_kuma_data:
