@@ -25,6 +25,33 @@ function adminHomePath(role: string | undefined) {
   return "/admin";
 }
 
+/**
+ * SEC-01 - Validate the ?next= redirect param to prevent open redirect.
+ *
+ * Rules:
+ * - Must start with "/" (relative path only - no absolute URLs)
+ * - Must NOT start with "//" (protocol-relative URL pointing to external host)
+ * - Must NOT contain "://" (absolute URL smuggled after a slash)
+ * - For admin logins: must start with "/admin"
+ * - For member logins: must NOT start with "/admin"
+ *
+ * Returns null when invalid; caller should fall back to the default path.
+ */
+function safeNextPath(
+  raw: string | null,
+  variant: "member" | "admin",
+): string | null {
+  if (!raw) return null;
+  // Must be a relative path starting with a single slash.
+  if (!raw.startsWith("/") || raw.startsWith("//")) return null;
+  // Block smuggled absolute URLs like /https://evil.com.
+  if (raw.includes("://")) return null;
+  // Keep each variant within its own area.
+  if (variant === "admin" && !raw.startsWith("/admin")) return null;
+  if (variant === "member" && raw.startsWith("/admin")) return null;
+  return raw;
+}
+
 export function AuthLoginForm({
   className,
   variant = "member",
@@ -69,9 +96,10 @@ export function AuthLoginForm({
         resetTurnstile();
         return;
       }
-      window.location.assign(
-        isAdmin ? adminHomePath(data.user?.role) : "/member",
-      );
+      const params = new URLSearchParams(window.location.search);
+      const nextPath = safeNextPath(params.get("next"), variant);
+      const defaultPath = isAdmin ? adminHomePath(data.user?.role) : "/member";
+      window.location.assign(nextPath ?? defaultPath);
     } catch {
       setError("Network error");
       setTurnstileToken(null);
