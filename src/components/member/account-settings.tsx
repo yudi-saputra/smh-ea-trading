@@ -33,7 +33,7 @@ const SETTINGS: SettingDef[] = [
     key: "setmultiplier",
     command: "/setmultiplier",
     label: "Naik Lot Mode Agresif",
-    min: 1.1,
+    min: 0.1,
     max: 10,
   },
   {
@@ -597,7 +597,7 @@ export function MemberAccountSettings({
 
       {!enabled ? (
         <p className="type-caption text-muted-foreground">
-          Terminal disabled — settings blocked.
+          Terminal disabled - settings blocked.
         </p>
       ) : null}
       {error ? <p className="type-caption text-destructive">{error}</p> : null}

@@ -10,9 +10,7 @@ import { cn } from "@/lib/utils";
 type Chrome = {
   title: string;
   subtitle?: string;
-  /** Tab root — show bottom nav, no back */
   tab: boolean;
-  /** Absolute path, or `"back"` for history */
   back?: string;
   showLogo?: boolean;
 };

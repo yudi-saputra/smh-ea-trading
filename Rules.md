@@ -4,7 +4,7 @@ Aturan ukuran & penggunaan font untuk SMH Control Panel. Mengikuti best practice
 
 ## Prinsip
 
-1. **Satu sumber kebenaran per surface** — jangan campur token Tailwind dengan kelas `type-*` di file yang sama tanpa alasan.
+1. **Satu sumber kebenaran per surface** - jangan campur token Tailwind dengan kelas `type-*` di file yang sama tanpa alasan.
 2. **Admin / dashboard** → pakai token Tailwind shadcn (`text-sm`, `text-base`, `text-2xl`, …).
 3. **Client mobile** → boleh pakai skala `type-*` di `globals.css` (lebih compact untuk layar kecil).
 4. **Jangan** hardcode `text-[13px]`, `text-[15px]`, dll. kecuali kasus sangat spesial.
@@ -25,8 +25,8 @@ Aturan ukuran & penggunaan font untuk SMH Control Panel. Mengikuti best practice
 
 ### Weight
 
-- `font-medium` — label, item aktif, nilai penting
-- `font-semibold` — page title, angka KPI besar
+- `font-medium` - label, item aktif, nilai penting
+- `font-semibold` - page title, angka KPI besar
 - Hindari `font-bold` kecuali brand/display
 
 ### Warna teks
@@ -60,7 +60,7 @@ Komponen dibagi per domain. **Jangan** taruh komponen domain di root `src/compon
 
 | Folder | Isi |
 |--------|-----|
-| `ui/` | shadcn only — tanpa business logic |
+| `ui/` | shadcn only - tanpa business logic |
 | `admin/layout/` | Shell admin: sidebar, header, nav, section cards |
 | `admin/tables/` | Data tables + helper `data-table` |
 | `admin/account/` | Form create/expiry akun (terminal) |
@@ -77,7 +77,7 @@ Aturan singkat:
 - Auth forms → `components/auth/...`
 - Shared lintas surface → `components/shared/...`
 - Nama export publik ikut domain (`MemberAppShell`, `UsersTable`, `AuthLoginForm`); path mengikuti folder
-- **Peta URL & redirect:** lihat `docs/ROUTING.md` — update file itu setiap ada perubahan route
+- **Peta URL & redirect:** lihat `docs/ROUTING.md` - update file itu setiap ada perubahan route
 
 ---
 
@@ -122,7 +122,7 @@ space-y-4
 </div>
 ```
 
-### Tabel — pakai token dari `data-table.tsx`
+### Tabel - pakai token dari `data-table.tsx`
 
 | Token | Dipakai di |
 |-------|------------|
@@ -140,7 +140,7 @@ Kolom Aksi: `TableHead` + cell `text-right`; tombol di `flex justify-end gap-1`.
 
 ### Aksi baris
 
-Pakai `DataTableAction` (icon + tooltip), **satu per aksi** — jangan bungkus beberapa button di satu `DataTableAction` tanpa `label`.
+Pakai `DataTableAction` (icon + tooltip), **satu per aksi** - jangan bungkus beberapa button di satu `DataTableAction` tanpa `label`.
 
 ```tsx
 <div className="flex justify-end gap-1">
@@ -152,13 +152,13 @@ Pakai `DataTableAction` (icon + tooltip), **satu per aksi** — jangan bungkus b
 
 ### Dialog / AlertDialog
 
-- `DialogContent`: default `bg-popover` (sudah di `ui/dialog`) — jangan override ke `bg-background` kecuali perlu.
+- `DialogContent`: default `bg-popover` (sudah di `ui/dialog`) - jangan override ke `bg-background` kecuali perlu.
 - Lebar form: `sm:max-w-106.25` (atau biarkan default `sm:max-w-md`).
 - Form: `<form className="grid gap-4">` mengelilingi header + fields + footer.
 - Field: `Label` + `Input` dalam `grid gap-2` (bukan `bg-secondary` custom di input).
 - Error: `rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive`.
 - Footer: Batal (`variant="outline"`) + primary; hapus pakai `AlertDialogAction variant="destructive"`.
-- Detail (Show): key–value `text-sm`, label `text-muted-foreground`, value `font-medium`, pisah dengan `Separator` — **bukan** input disabled.
+- Detail (Show): key-value `text-sm`, label `text-muted-foreground`, value `font-medium`, pisah dengan `Separator` - **bukan** input disabled.
 - Form panjang: bungkus isi dialog dengan `ScrollArea` (`max-h-[90vh]`), **jangan** `overflow-y-auto` ad-hoc di `DialogContent`.
 
 ```tsx
@@ -171,7 +171,7 @@ Pakai `DataTableAction` (icon + tooltip), **satu per aksi** — jangan bungkus b
 
 ### Empty state
 
-Wajib pakai `DataTableEmpty` (membungkus `Empty` dari `@/components/ui/empty`) — **jangan** teks polos di `TableCell`.
+Wajib pakai `DataTableEmpty` (membungkus `Empty` dari `@/components/ui/empty`) - **jangan** teks polos di `TableCell`.
 
 ```tsx
 {table.getRowModel().rows.length === 0 ? (
@@ -186,8 +186,8 @@ Wajib pakai `DataTableEmpty` (membungkus `Empty` dari `@/components/ui/empty`) �
 ```
 
 - `title` wajib, singkat (mis. `Belum ada member.`)
-- `description` opsional — konteks / next step
-- `action` opsional — CTA (jarang; tombol Tambah biasanya di toolbar)
+- `description` opsional - konteks / next step
+- `action` opsional - CTA (jarang; tombol Tambah biasanya di toolbar)
 
 ### Scroll area
 

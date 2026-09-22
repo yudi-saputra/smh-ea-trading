@@ -60,7 +60,7 @@ export function AccountExpiryForm({
       ) : null}
       {saved ? (
         <p className="text-sm text-emerald-700 dark:text-emerald-400">
-          Expiry tersimpan — EA mengambilnya pada heartbeat berikutnya.
+          Expiry tersimpan - EA mengambilnya pada heartbeat berikutnya.
         </p>
       ) : null}
       <FieldGroup>

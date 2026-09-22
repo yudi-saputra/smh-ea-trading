@@ -10,7 +10,6 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Strategic Market Handler",
   },
-  // Nested layout replaces root `icons` — must set favicon + apple together.
   icons: {
     icon: [
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },

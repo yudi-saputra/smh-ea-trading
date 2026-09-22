@@ -44,7 +44,6 @@ export const dataTableHeaderRowClass = "border-border/40 hover:bg-transparent";
 export const dataTableCellClass = "px-4 py-3 text-sm";
 export const dataTableRowClass = "border-border/40 hover:bg-background/50";
 export const dataTableBodyClass = "bg-sidebar";
-/** Horizontal overflow only — table height follows pageSize (no inner height clip). */
 export const dataTableScrollClass = "w-full overflow-x-auto";
 
 export function DataTableSearch({
@@ -71,7 +70,6 @@ export function DataTableSearch({
   );
 }
 
-/** Flex row for search + actions inside DataTableCard toolbar. */
 export function DataTableToolbar({
   className,
   children,
@@ -91,7 +89,6 @@ export function DataTableToolbar({
   );
 }
 
-/** Checkbox menu to show/hide hideable columns. */
 export function DataTableColumnToggle<TData>({
   table,
   className,
@@ -175,10 +172,6 @@ export function DataTableColumnReset({
   );
 }
 
-/**
- * Column visibility with app defaults + localStorage (survives reload).
- * Keys true = visible, false = hidden. Omitted keys default to visible in TanStack.
- */
 export function useDataTableColumnVisibility(
   storageKey: string,
   defaults: VisibilityState = {},
@@ -199,7 +192,6 @@ export function useDataTableColumnVisibility(
         }
       }
     } catch {
-      // ignore corrupt storage
     }
     setReady(true);
   }, [storageKey]);
@@ -209,7 +201,6 @@ export function useDataTableColumnVisibility(
     try {
       localStorage.setItem(storageKey, JSON.stringify(columnVisibility));
     } catch {
-      // ignore quota / private mode
     }
   }, [columnVisibility, ready, storageKey]);
 
@@ -228,7 +219,6 @@ export function DataTableCard({
   children,
 }: {
   className?: string;
-  /** false = no wrapper; string adds overflow classes (default: horizontal only). */
   scrollClassName?: string | false;
   toolbar?: React.ReactNode;
   footer?: React.ReactNode;

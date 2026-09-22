@@ -56,8 +56,6 @@ export function TurnstileField({
         widgetIdRef.current = null;
       }
     };
-    // ponytail: remount only when site key changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [siteKey]);
 
   return (

@@ -14,7 +14,6 @@ import {
 import { SmhLogo } from "@/components/shared/smh-logo";
 import { cn } from "@/lib/utils";
 
-/** Static marketing mockup of the member control panel — not live data. */
 export function HeroPhoneMockup() {
   return (
     <div className="relative mx-auto w-full max-w-62.5 max-sm:-mb-8 sm:max-w-95 md:max-w-100">
@@ -22,10 +21,8 @@ export function HeroPhoneMockup() {
         className="relative origin-top scale-[0.86] pt-7 sm:scale-100 sm:pt-12"
         aria-hidden
       >
-        {/* Soft circular glow behind phone */}
         <div className="pointer-events-none absolute left-1/2 top-1/2 z-0 size-[120%] max-w-none -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--trading-gold)_28%,transparent)_0%,color-mix(in_oklch,var(--trading-gold)_10%,transparent)_42%,transparent_70%)] blur-2xl sm:size-[130%]" />
 
-        {/* Floating feature cards */}
         <FloatCard
           className="absolute left-0 top-5 z-10 -translate-x-0.5 sm:top-3 sm:-translate-x-4 md:-translate-x-8"
           floatClass="hero-float"
@@ -48,7 +45,6 @@ export function HeroPhoneMockup() {
           subtitle="Panel Web & On-Chart"
         />
 
-        {/* Phone bezel — portrait proportions */}
         <div className="relative z-1 mx-auto w-[82%] max-w-52.5 sm:w-[76%] sm:max-w-75 md:max-w-77.5">
           <div className="rounded-[1.5rem] border border-zinc-700/80 bg-zinc-950 p-1 shadow-[0_20px_48px_-18px_rgba(0,0,0,0.5)] ring-1 ring-white/5 sm:rounded-[2rem] sm:p-2 sm:shadow-[0_24px_60px_-20px_rgba(0,0,0,0.55)]">
             <div className="overflow-hidden rounded-[1.2rem] bg-[#0c0c0e] sm:rounded-[1.5rem]">
@@ -57,7 +53,6 @@ export function HeroPhoneMockup() {
                 <span className="mx-auto h-1 w-12 rounded-full bg-zinc-800 sm:h-1.5 sm:w-16" />
               </div>
 
-              {/* App header */}
               <div className="flex items-center gap-1.5 border-b border-zinc-800/80 px-2.5 py-1.5 sm:gap-2 sm:px-3.5 sm:py-2.5">
                 <SmhLogo size={18} className="sm:hidden" />
                 <SmhLogo size={22} className="hidden sm:block" />
@@ -66,7 +61,6 @@ export function HeroPhoneMockup() {
                 </p>
               </div>
 
-              {/* Screen content — mirrors member account panel */}
               <div className="space-y-1.5 px-2 py-1.5 sm:space-y-2 sm:px-2.5 sm:py-2.5">
                 <div className="flex items-center justify-between gap-2 rounded-lg border border-zinc-800 bg-zinc-900/80 px-2.5 py-1.5 sm:gap-3 sm:rounded-xl sm:px-3 sm:py-2">
                   <div className="min-w-0">

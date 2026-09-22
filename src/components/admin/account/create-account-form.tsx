@@ -57,9 +57,7 @@ export function CreateAccountForm({
   traders: TraderOption[];
   packages?: AccountPackageOption[];
   listHref?: string;
-  /** Skip Card wrapper — for use inside Dialog. */
   embedded?: boolean;
-  /** Called after success dismiss (or instead of navigating to listHref). */
   onDone?: () => void;
 }) {
   const router = useRouter();
@@ -113,7 +111,6 @@ export function CreateAccountForm({
     setOwnerMemberId(id);
     setError(null);
     const m = traders.find((t) => t.id === id);
-    // Only suggest package; trading fields stay empty so multi-akun is entered manually.
     if (m?.packageId) setPackageId(m.packageId);
   }
 
@@ -179,7 +176,7 @@ export function CreateAccountForm({
         <DialogHeader>
           <DialogTitle>API Key</DialogTitle>
           <DialogDescription>
-            Salin ApiKey sekarang.
+            Salin API Key
           </DialogDescription>
         </DialogHeader>
       ) : (

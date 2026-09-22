@@ -339,9 +339,9 @@ function BantuanGuide() {
               Naik Lot Per 3 Layer
             </p>
             <ul className="mt-1.5 space-y-0.5 font-mono text-[0.925em]">
-              <li>Layer 1–3 → Lot awal</li>
-              <li>Layer 4–6 → Lot berikutnya</li>
-              <li>Layer 7–9 → Lot berikutnya</li>
+              <li>Layer 1-3 → Lot awal</li>
+              <li>Layer 4-6 → Lot berikutnya</li>
+              <li>Layer 7-9 → Lot berikutnya</li>
             </ul>
           </div>
         </GuideTerm>

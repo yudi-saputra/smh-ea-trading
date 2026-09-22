@@ -40,7 +40,6 @@ export function MemberSummaryCard({
         ? "text-trading-profit"
         : "text-trading-loss";
 
-  // ponytail: flat/null → up mascot; only negative growth flips to down
   const mascotSrc =
     growthPct != null && !Number.isNaN(growthPct) && growthPct < 0
       ? "/maskot_smh_02.png"
@@ -58,7 +57,7 @@ export function MemberSummaryCard({
         aria-hidden
       />
 
-      {/* Bevelled top edge — the gold catch-light that reads as metal */}
+      {/* Bevelled top edge - the gold catch-light that reads as metal */}
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-trading-gold/50 to-transparent"
         aria-hidden
